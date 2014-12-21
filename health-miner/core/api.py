@@ -10,15 +10,16 @@ from health_miner import settings
 import random
 from bson import ObjectId
 
-DEFAULT_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+DEFAULT_TIME_FORMAT = '%Y-%m-%d %X'
 
 class ComplexEncoder(json.JSONEncoder):
+    item_separator = ','
+    key_separator = ':'
     def default(self, obj):
         if isinstance(obj, datetime):
-            return obj.strftime('%Y-%m-%d %H:%M:%S')
+            return obj.strftime(DEFAULT_TIME_FORMAT)
         if isinstance(obj, ObjectId):
             return str(obj)
-
         return json.JSONEncoder.default(self, obj)
 
 def get_auth_user(request, data=None):
@@ -33,6 +34,7 @@ def get_auth_user(request, data=None):
 
         return user[0]
     else:
+        # TODO: add a timestamp
         user = user_auth(data.get('auth_username', None), data.get('auth_password', None))
         return user
 
@@ -233,7 +235,7 @@ def register(request):
     if request.FILES.has_key('avatar'):
         fs = request.FILES['avatar']
         try:
-            target_user.update_avatar(fs)
+            user.update_avatar(fs) # fix a bug of typo
         except FileNotQualifiedException as e:
             return HttpResponseBadRequest(e.get_msg())
 
@@ -872,5 +874,117 @@ def patient_statistic(request):
             response_data[key] = statistic
 
     return HttpResponse(json.dumps(response_data, cls=ComplexEncoder))
-            
 
+def is_device_id_valid(device_id):
+    return True if device_id else False
+
+class ApiException(Exception):
+    def __init(self, message):
+        self.message = message;
+
+def wrap_json_api(more, *args):
+    if more is True:
+        backup_args = args
+        def wrap_json_api_(func):
+            def wrapper(request):
+                try:
+                    result = func(request)
+                except Exception, exception:
+                    result = {"error": str(exception)}
+                return HttpResponse(json.dumps(result, cls=ComplexEncoder))
+            ret = wrapper
+            for wrap_i in backup_args[::-1]:
+                ret = wrap_i(ret)
+            return ret
+        return wrap_json_api_
+    def wrapper(request):
+        try:
+            result = more(request)
+        except ApiException, exception:
+            result = {"error": exception.message}
+        return HttpResponse(json.dumps(result, cls=ComplexEncoder))
+    return wrapper
+
+@wrap_json_api(True, csrf_exempt)
+def get_user_by_device(request):
+    """
+    Getting a user's information using a device id.
+    All allowed.
+    Required:
+    - device_id (in GET)
+    """
+    device_id = request.GET.get('device_id', '')
+    if not is_device_id_valid(device_id):
+        raise ApiException("Please give a valid device id")
+    try:
+        bind_re = RE_DeviceBind.objects.get(device_id = device_id)
+    except RE_DeviceBind.DoesNotExist:
+        raise ApiException("Device \"" + device_id + "\" does not exist!")
+    user = bind_re.used_user
+    if not user or user.deleted or not user.role == User.PATIENT:
+        raise ApiException("Device \"" + device_id + "\" is not registered!")
+    return {
+        "username": user.username,
+        "guid": user.guid,
+        "name": user.name,
+        "avatar_url": user.avatar_url,
+        "bindtime": bind_re.bind_time
+    }
+
+@wrap_json_api(True, transaction.atomic, csrf_exempt)
+def bind_device_to_user(request):
+    """
+    bind a device to a patient.
+    Only open to those who having access to the patient.
+    Required:
+    - device_id
+    """
+    auth_user = get_auth_user(request)
+    if auth_user is None:
+        raise ApiException('AUTHENTICATION FAIL OR NOT LOGGED IN')
+    device_id = request.REQUEST.get('device_id', '')
+    if not is_device_id_valid(device_id):
+        raise ApiException("Please give a valid device id")
+    try:
+        bind_re = RE_DeviceBind.objects.get(device_id = device_id)
+        if bind_re.used_user:
+            if not bind_re.used_user.username == auth_user.username:
+                raise ApiException("Device \"" + device_id + "\" has been bound to others!")
+            else:
+                return {"result": "OK", "bind_time": bind_re.bind_time, "has_bound": True}
+        else:
+            bind_re.used_user = auth_user
+            bind_re.save()
+            return {"result": "OK", "bind_time": bind_re.bind_time}
+    except RE_DeviceBind.DoesNotExist:
+        bind_re = RE_DeviceBind(device_id = device_id, used_user=auth_user)
+        bind_re.save()
+        return {"result": "OK", "bind_time": bind_re.bind_time}
+
+@wrap_json_api(True, transaction.atomic, csrf_exempt)
+def unbind_device(request):
+    """
+    unbind a device which belonged to a patient.
+    Only open to those who having access to the patient.
+    Required:
+    - device_id
+    """
+    auth_user = get_auth_user(request)
+    if auth_user is None:
+        raise ApiException('AUTHENTICATION FAIL OR NOT LOGGED IN')
+    device_id = request.REQUEST.get('device_id', '')
+    if not is_device_id_valid(device_id):
+        raise ApiException("Please give a valid device id")
+    try:
+        bind_re = RE_DeviceBind.objects.get(device_id = device_id)
+        if bind_re.used_user:
+            if bind_re.used_user.username == auth_user.username:
+                bind_re.used_user = None
+                bind_re.save()
+                return {"result": "OK", "unbind_time": bind_re.bind_time}
+            else:
+                raise ApiException("Device \"" + device_id + "\" does not belong to this user!")
+        else:
+            return {"result": "OK", "unbind_time": bind_re.bind_time}
+    except RE_DeviceBind.DoesNotExist:
+        raise ApiException("Please give a valid device id")

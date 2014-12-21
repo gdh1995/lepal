@@ -56,5 +56,13 @@ target/
 *.pyc
 .idea/
 node_modules
+/temp*
 *.TEMP
 *.TMP
+/uploads
+
+
+/*
+! /health-miner
+! /README.md
+! .gitignore

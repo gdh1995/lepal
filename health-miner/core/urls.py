@@ -18,6 +18,11 @@ urlpatterns = patterns('core',
     url(r'^patients$',                                                                   'api.get_overseeing_patients'),
     url(r'^patient/statistic$',                                                          'api.patient_statistic'),
 
+    url(r'^device/get$', 'api.get_user_by_device'),
+    url(r'^device/bind$', 'api.bind_device_to_user'),
+    url(r'^device/unbind$', 'api.unbind_device'),
+    url(r'^medical_records/json', 'mongo_data.get_limited_data'),
+
     url(r'^medical_records$',                                                            'api.get_patient_medical_records'),
     url(r'^medical_record/create$',                                                      'api.create_patient_medical_record'),
     url(r'^medical_record/delete$',                                                      'api.delete_patient_medical_record'),

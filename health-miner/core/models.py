@@ -158,6 +158,11 @@ class RegistrationCode(models.Model):
     used_time       = models.DateTimeField(null=True)
     deleted         = models.BooleanField(default=0)
 
+class RE_DeviceBind(models.Model):
+    device_id       = models.CharField(max_length=50, primary_key=True)
+    used_user       = models.ForeignKey(User, null=True, related_name='user bound') # Who register using this
+    bind_time       = models.DateTimeField(auto_now=True, editable=False)
+
 def get_mongo_db():
     return MongoClient(host=settings.MONGO_HOST, port=settings.MONGO_PORT).health_miner
 
