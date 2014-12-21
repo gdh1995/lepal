@@ -1,0 +1,55 @@
+<style type="text/css">
+	.nav-bar{
+		width: 100%;
+		text-align: center;
+	}
+	.info-nav{
+		width: 100%;
+		margin: 0;
+		padding: 0;
+	}
+	ul.info-nav li{
+		list-style: none;
+		text-align: center;
+		background: #ccc;
+		padding: 10px;
+	}
+
+	ul.info-nav li.active{
+		background: #bbb;
+	}
+
+	ul.info-nav a, ul.info-nav a:hover{
+		color: #000;
+		text-decoration: none;
+		color: #444;
+	}
+	
+</style>
+<div class="nav-bar">
+	<div class="avatar-container">
+		{% if user.avatar_url %}
+			<img src="{{user.avatar_url}}">
+		{% else %}
+			<img src="/static/img/empty_avatar.png">
+		{% endif %}
+	</div>
+	<div>
+		<h3>{{user.username}}</h3>
+	</div>
+	<div>
+		真实姓名：{{user.name | default_if_none:"未设置"}}
+	</div>
+	<ul class="info-nav">
+		<a class="info-nav-item " href="/user/info_update">
+			<li class="{% if nav == 'info_update' %} active {% endif %}">个人信息</li>
+		</a>
+		<a class="info-nav-item " href="/user/upload_avatar">
+			<li class="{% if nav == 'upload_avatar' %} active {% endif %}">上传头像</li>
+		</a>
+		<a class="info-nav-item " href="/user/change_password">
+			<li class="{% if nav == 'change_password' %} active {% endif %}">修改密码</li>
+		</a>
+		
+	</ul>
+</div>

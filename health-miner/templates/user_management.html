@@ -1,0 +1,599 @@
+{% extends 'base_template.html' %}
+
+{% block extra_head %}
+<link rel="stylesheet" type="text/css" href="/static/plugins/xeditable/css/bootstrap-editable.css">
+<style type="text/css">
+	.overseeing-patient-panel{display: none;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+	<div class="row">
+		
+		<div class="col-md-10">
+			{% for role in role_options %}
+			<a href="javascript:switchRole('{{role.name}}')" class="btn {% if role.name == current_role %}btn-success{%endif%}">
+				{{role.display_name}}
+			</a>
+			{% endfor %}
+			<span>
+				<input type="text" id="user-query" value="{{query}}" placeholder="筛选用户" class="input">
+				<a href="javascript:search()" class="btn btn-default">
+					搜索
+				</a>
+			</span>
+		</div>
+		
+		<a class="pull-right btn btn-primary" id="btn-open-add-user-modal">
+			添加用户
+		</a>
+	</div>
+	<div class="row m-t-10"> 
+		<table class="table">
+			
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>用户名</th>
+					<th>用户ID</th>
+					<th>姓名</th>
+					<th>性别</th>
+					<th>年龄</th>
+					<th>角色</th>
+					<th>注册时间</th>
+					<th>操作</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for user in users %}
+					<tr>
+						<td>{{forloop.counter}}</td>
+						<td>{{user.username}}</td>
+						<TD>{{user.guid}}</TD>
+						<td>
+							<span class="user-name-editable" data-type="text" 
+								data-pk="{{user.id}}" data-value="{{user.name}}">
+								{{user.name}}
+							</span>
+						</td>
+						<TD>
+							{% if user.sex == 1 %}
+								男
+							{% elif user.sex == 2 %}
+								女
+							{% else %}
+								未知
+							{% endif %}
+						</TD>
+						<TD>
+							{{user.age | default_if_none:"未知" }}
+						</TD>
+						<td>
+							<span class="user-role-editable" data-type="select" 
+								data-pk="{{user.id}}" data-value="{{user.role.id}}">
+								{% for role in roles %}
+									{% if role.name == user.role.name %}
+										{{role.display_name}}
+									{% endif %}
+								{% endfor %}
+							</span>
+						</td>
+						<td>
+							{{user.register_time}}
+						</td>
+						<td>
+							<div class="change-password-panel" data-user="{{user.id}}">
+								<span class="btn btn-small btn-trigger btn-primary">
+									修改密码
+								</span>
+								<div class="password-form-zone" style="display:none;">
+									<input class="password" placeholder="新密码" type="password">
+									<input class="password-confirm" placeholder="确认密码" type="password">
+									<span class="btn btn-confirm btn-success">
+										确认
+									</span>
+									<span class="btn btn-hide-form btn-default">
+										取消
+									</span>
+								</div>
+							</div>
+							{% if user.role.name == 'patient' %}
+							<div class="change-overseer-zone" data-user="{{user.id}}" data-patient="{{user.patient.id}}">
+								<div>
+									监护人:
+									{% for overseer in user.overseers %}
+										<span class="label label-success">{{overseer.username}}</span>
+									{% endfor %}
+									<span class="btn btn-small btn-trigger btn-link">
+										修改
+									</span>
+								</div>
+								
+								<div class="overseer-form-zone" style="display:none;">
+									<table class="table overseers-table">
+										<thead>
+											<tr>
+												<th>用户ID</th>
+												<th>姓名</th>
+												<th>角色</th>
+												<th>操作</th>
+											</tr>
+										</thead>
+										<tbody>
+											{% for overseer in user.overseers %}
+												<tr class="overseer-item">
+													<td>{{overseer.guid}}</td>
+													<td>{{overseer.name}}</td>
+													<td>{{overseer.role.name}}</td>
+													<td>
+														<span class="btn btn-link btn-delete-overseer" data-overseer="{{overseer.id}}">
+															删除
+														</span>
+													</td>
+												</tr>
+											{% endfor %}
+										</tbody>
+									</table>
+									
+									<select class="add-overseer-select">
+										{% for overseer in all_overseers %}
+											<option value="{{overseer.id}}">
+												{{overseer.name}}({{overseer.role.name}},{{overseer.guid}})
+											</option>
+										{% endfor %}
+									</select>
+									<div class="btn btn-success btn-confirm-add-overseer">
+										确定添加
+									</div>
+									<span class="btn btn-hide-form btn-default">
+										取消
+									</span>
+								</div>
+							</div>
+							{% endif %}
+
+							{% if user.role.name == 'doctor' or user.role.name == 'advisor' %}
+							<div class="change-overseeing-patient-zone" data-user="{{user.id}}">
+								<div class="btn btn-link btn-open-overseeing-patient-panel">
+									查看负责的微服务用户
+								</div>
+								<div class="overseeing-patient-panel">
+									<div>
+										<table class="table overseeing-patients-table" >
+											<thead>
+												<tr>
+													<th>用户ID</th>
+													<th>姓名</th>
+													<th>操作</th>
+												</tr>
+											</thead>
+											<tbody>
+												{% for patient in user.overseeing_patients %}
+													<tr class="patient-item">
+														<td>{{patient.user.guid}}</td>
+														<td>{{patient.user.name}}</td>
+														<td>
+															<span class="btn btn-link btn-delete-overseeing-patient" data-patient="{{patient.id}}">
+																删除
+															</span>
+														</td>
+													</tr>
+												{% endfor %}
+											</tbody>
+										</table>
+										
+									</div>
+									<div class="add-patient-zone">
+										<select class="add-patient-select">
+											{% for patient in all_patients %}
+												<option value="{{patient.id}}">
+													{{patient.user.name}}({{patient.user.guid}})
+												</option>
+											{% endfor %}
+										</select>
+										<div class="btn btn-success btn-confirm-add-patient">
+											确定添加
+										</div>
+										<div class="btn btn-default btn-close-overseeing-patient-panel">
+											隐藏面板
+										</div>
+									</div>
+								</div>
+							</div>
+							{% endif %}
+
+							<div class="btn-delete-user btn btn-warning" data-user="{{user.id}}">
+								删除用户
+							</div>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+</div>
+<div class="modal fade" id="add-user-modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title">增加用户</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal" role="form" method='POST' action="/api/user/create">
+		  <div class="form-group">
+		    <label for="username" class="col-sm-4 control-label">用户名</label>
+		    <div class="col-sm-4">
+		      <input type="text" class="form-control" id="username" name="username">
+		    </div>
+		  </div>
+		  <div class="form-group">
+		    <label for="name" class="col-sm-4 control-label">真实姓名</label>
+		    <div class="col-sm-4">
+		      <input type="text" class="form-control" id="name" name="name">
+		    </div>
+		  </div>
+		  <div class="form-group">
+		    <label for="password" class="col-sm-4 control-label">密码</label>
+		    <div class="col-sm-4">
+		      <input type="password" class="form-control" id="password" name="password">
+		    </div>
+		  </div>
+		  <div class="form-group">
+		    <label for="role" class="col-sm-4 control-label">角色</label>
+		    <div class="col-sm-4">
+		      	<select name="role">
+		      		{% for role in roles %}
+		      			<option value="{{role.id}}">{{role.display_name}}</option>
+		      		{% endfor %}
+		      	</select>
+		    </div>
+		  </div>
+		</form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+        <button type="button" class="btn btn-primary btn-submit">保存</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="/static/plugins/xeditable/js/bootstrap-editable.min.js"></script>
+<script type="text/javascript" src="/static/plugins/md5-min.js"></script>
+<script type="text/javascript">
+	var currentRole = '{{current_role}}',
+		currentQuery = '{{query}}';
+	function getSearchQuery(){ return $('#user-query').val();};
+
+	function changeQuery(role, query){
+		window.location.href = '/user_management?role=' + role + '&query=' + query;
+	}
+	function switchRole(role){
+		changeQuery(role, currentQuery);
+	}
+
+	function search(){
+		changeQuery(currentRole, getSearchQuery());
+	}
+
+	$(document).ready(function(e){
+
+		var addUserModal = $('#add-user-modal');
+		$('#btn-open-add-user-modal').click(function(){
+			addUserModal.modal('show');
+		});
+		addUserModal.find('form').ajaxForm({
+			'success': function(){
+				addUserModal.modal('hide');
+				window.location.reload();
+			},
+			'error': function(){
+				alert('保存失败');
+			},
+			'beforeSubmit': function(form){
+				for(var i = 0;i < form.length;i++){
+					var item = form[i];
+					if(!item.value){
+						alert('不能留空！');
+						return false;
+					}
+					if(item.name == 'password'){
+						item.value = hex_md5(item.value);
+					}
+				}
+			},
+			'dataType': 'json'
+		});
+		addUserModal.find('.btn-submit').click(function(){
+			addUserModal.find('form').submit();
+		});
+
+		$('.user-name-editable').editable({
+			'url': function(params){
+				if(!params.value){
+					return false;
+				}
+				var d = new $.Deferred();
+				$.ajax({
+					'url': '/api/user/update',
+					'data': {'name': params.value, 'user_id': params.pk},
+					'success': function(r){
+						d.resolve(r);
+					},
+					'dataType': 'json',
+					'error': function(e){
+						d.reject(e);
+					}
+				});
+
+				return d;
+			}
+		})
+
+		function updatePassword(userId, newPassword, callback){
+			$.ajax({
+				'url': '/api/user/update',
+				'data': {
+					'user_id': userId,
+					'password': newPassword
+				},
+				'success': function(res){
+					if(res.error){
+						return callback(res.error);
+					}
+					return callback(null, res);
+				},
+				'dataType': 'json',
+				'error': function(e){
+					return callback(e);
+				}
+			});
+		}
+
+		$('.change-password-panel').each(function(){
+			var self = $(this),
+				trigger = self.find('.btn-trigger'),
+				form = self.find('.password-form-zone'),
+				confirmBtn = self.find('.btn-confirm'),
+				userId = self.data('user'),
+				btnHideForm = self.find('.btn-hide-form');
+
+			trigger.click(function(){
+				trigger.hide();
+				form.show();
+			});
+
+			confirmBtn.click(function(){
+				var password = form.find('.password').val(),
+					confirmPassword = form.find('.password-confirm').val();
+				if(!password) return alert('密码不能为空');
+
+				if(password != confirmPassword){
+					return alert('两次密码不一致');
+				}
+				updatePassword(userId, hex_md5(password), function(err){
+					if(err){
+						return alert('保存失败');
+					}else{
+						form.hide();
+						trigger.show();
+					}
+				});
+			});
+
+			btnHideForm.click(function(){
+				form.hide();
+				trigger.show();
+			});
+
+		});
+
+		// function setPatientOverseer(patient_id, overseerIds, callback){
+		// 	$.ajax({
+		// 		'url': '/api/patient/set_overseer',
+		// 		'data': {
+		// 			'patient_id': patient_id,
+		// 			'overseer_ids': overseerIds.join(',')
+		// 		},
+		// 		'success': function(res){
+		// 			if(res.error){
+		// 				return callback(res.error);
+		// 			}
+		// 			return callback(null, res);
+		// 		},
+		// 		'dataType': 'json',
+		// 		'error': function(e){
+		// 			return callback(e);
+		// 		}
+		// 	});
+		// }
+
+		$('.change-overseer-zone').each(function(){
+			var self = $(this),
+				trigger = self.find('.btn-trigger'),
+				form = self.find('.overseer-form-zone'),
+				btnConfirm = self.find('.btn-confirm-add-overseer'),
+				patientId = self.data('patient'),
+				btnCancel = self.find('.btn-hide-form'),
+				addOverseerSelect = self.find('.add-overseer-select'),
+				overseerTable = self.find('.overseers-table');
+
+			trigger.click(function(){
+				form.show();
+				trigger.hide();
+			});
+
+			btnConfirm.click(function(){
+				var overseerId = addOverseerSelect.val();
+				$.ajax({
+					'url': '/api/patient/add_overseer',
+					'data': {
+						'overseer_id': overseerId,
+						'patient_id': patientId
+					},
+					'type': 'POST',
+					'dataType': 'json',
+					'success': function(r){
+						var overseer = r.overseer;
+						var template = '<tr class="overseer-item">'
+											+ '<td>OVERSEER_GUID</td>'
+											+ '<td>OVERSEER_NAME</td>'
+											+ '<td>OVERSEER_ROLE</td>'
+											+ '<td>'
+												+ '<span class="btn btn-link btn-delete-overseer" data-overseer="OVERSEER_ID">'
+													+ '删除'
+												+ '</span>'
+											+ '</td>'
+										+ '</tr>';
+
+						template = template.replace('OVERSEER_GUID', overseer.guid)
+										   .replace('OVERSEER_NAME', overseer.name)
+										   .replace('OVERSEER_ROLE', overseer.role.name)
+										   .replace('OVERSEER_ID',   overseer.id);
+
+						overseerTable.find('tbody').append(template);
+						
+					},
+					'error': function(e){
+						alert(e.responseText);
+					}
+				});
+			});
+
+			self.on('click', '.btn-delete-overseer', function(){
+				var deleteBtn = $(this),
+					overseerId = deleteBtn.data('overseer');
+
+				$.ajax({
+					'url': '/api/patient/remove_overseer',
+					'data': {
+						'overseer_id': overseerId,
+						'patient_id': patientId
+					},
+					'type': 'POST',
+					'dataType': 'json',
+					'success': function(r){
+						deleteBtn.parents('.overseer-item:first').detach();
+					},
+					'error': function(e){
+						alert(e.responseText);
+					}
+				});
+			});
+
+			btnCancel.click(function(){
+				trigger.show();
+				form.hide();
+			});
+		});
+
+		$('.btn-delete-user').click(function(){
+			if(confirm('确认删除?')){
+				var self = $(this),
+					userId = self.data('user');
+
+				$.ajax({
+					'url': '/api/user/delete',
+					'data': {'user_id': userId},
+					'dataType': 'json',
+					'type': 'POST',
+					'success': function(res){
+						window.location.reload();
+					},
+					'error': function(e){
+						alert('操作失败，请联系管理员');
+					}
+				});
+			}
+			
+		});
+
+		$('.change-overseeing-patient-zone').each(function(){
+			var self = $(this),
+				overseerId = self.data('user'),
+				panel = self.find('.overseeing-patient-panel'),
+				patientTable = panel.find('.overseeing-patients-table'),
+				btnOpenPanel = self.find('.btn-open-overseeing-patient-panel'),
+				btnClosePanel = panel.find('.btn-close-overseeing-patient-panel'),
+				addPatientZone = self.find('.add-patient-zone'),
+				btnOpenAddPatientZone = self.find('.btn-open-add-patient-zone'),
+				btnCloseAddPatientZone = addPatientZone.find('.btn-close-add-patient-zone'),
+				addPatientSelect = addPatientZone.find('.add-patient-select'),
+				btnConfirmAddPatient = addPatientZone.find('.btn-confirm-add-patient');
+
+			btnOpenPanel.click(function(){ 
+				panel.show(); 
+				btnOpenPanel.hide();
+			});
+			btnClosePanel.click(function(){ 
+				panel.hide(); 
+				btnOpenPanel.show();
+			});
+			btnOpenAddPatientZone.click(function(){ addPatientZone.show(); });
+			btnCloseAddPatientZone.click(function(){ addPatientZone.hide(); });
+
+			self.on('click', '.btn-delete-overseeing-patient', function(){
+				var btnDom = $(this);
+				var patientId = $(this).data('patient');
+
+				$.ajax({
+					'url': '/api/patient/remove_overseer',
+					'data': {
+						'overseer_id': overseerId,
+						'patient_id': patientId
+					},
+					'type': 'POST',
+					'dataType': 'json',
+					'success': function(r){
+						btnDom.parents('.patient-item:first').detach();
+					},
+					'error': function(e){
+						alert(e.responseText);
+					}
+				});
+			});
+
+			btnConfirmAddPatient.click(function(){
+				var patientId = addPatientSelect.val();
+				$.ajax({
+					'url': '/api/patient/add_overseer',
+					'data': {
+						'overseer_id': overseerId,
+						'patient_id': patientId
+					},
+					'type': 'POST',
+					'dataType': 'json',
+					'success': function(r){
+						var patient = r.patient;
+						var template = '<tr class="patient-item">'
+											+ '<td>PATIENT_USER_GUID</td>'
+											+ '<td>PATIENT_USER_NAME</td>'
+											+ '<td>'
+												+ '<span class="btn btn-link btn-delete-overseeing-patient" '
+												+ 'data-patient="PATIENT_ID">'
+													+ '删除'
+												+ '</span>'
+											+ '</td>'
+										+ '</tr>';
+
+						template = template.replace('PATIENT_ID', patient.id)
+										   .replace('PATIENT_USER_GUID', patient.user.guid)
+										   .replace('PATIENT_USER_NAME', patient.user.name);
+
+						patientTable.find('tbody').append(template);
+						patientTable.show();
+						
+					},
+					'error': function(e){
+						alert(e.responseText);
+					}
+				});
+			});
+
+		})
+	});
+</script>
+{% endblock %}

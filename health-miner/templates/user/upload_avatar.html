@@ -1,0 +1,57 @@
+{% extends 'base_template.html' %}
+
+{% block content %}
+<div class="container">
+	<div class="margin:auto;">
+
+		<div class="row">
+			<div class="col-md-2">
+				{% include 'user/info_nav.html' %}
+			</div>
+			<div class="col-md-10">
+				<form class="form-horizontal" role="form" method='POST' id="upload-avatar-form" 
+					enctype="multipart/form-data" 
+					action="/api/user/update">
+				<input value="{{user.id}}" style="display:none;" name="user_id">
+				  <div class="form-group">
+				    <label for="avatar" class="col-sm-4 control-label">头像上传</label>
+				    <div class="col-sm-4">
+				      <input type="file" class="form-control" name="avatar">
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <div class="col-sm-offset-4 col-sm-4">
+				      <button type="submit" class="btn btn-default">确认</button>
+				    </div>
+				  </div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="/static/plugins/md5-min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function(e){
+		$('#upload-avatar-form').ajaxForm({
+			'beforeSubmit': function(form){
+				// TODO: Nothing
+				return true;
+			},
+			'success': function(res){
+				if(res.error){
+					return alert(res.error);
+				}
+				window.location.reload();
+			},
+			'error': function(e){
+				alert(e.responseText);
+				return
+			},
+			'dataType': 'json'
+		})
+	});
+</script>
+{% endblock %}

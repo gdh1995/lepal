@@ -1,0 +1,553 @@
+{% extends 'base_template.html' %}
+
+{% block extra_head %}
+<link rel="stylesheet" type="text/css" href="/static/plugins/xeditable/css/bootstrap-editable.css">
+<link rel="stylesheet" type="text/css" href="/static/plugins/fancybox/source/jquery.fancybox.css">
+<style type="text/css">
+	.user-info{
+		width: 95%;
+		border-right: 2px #eee solid;
+		text-align: center;
+	}
+	#app-container{
+		
+		padding: 10px 0 0 0;
+	}
+	.patient-item{
+		padding: 10px 25px;
+	}
+	.patient-item:hover{
+		background: #eee;
+	}
+	.patient-item.selected{
+		background: #ccc;
+		border-left: 5px solid #139627;
+		padding-left: 20px;
+	}
+
+/*	.advance-operations{
+		display: none;
+	}
+	.patient-item.selected .advance-operations{
+		display: block;
+	}*/
+/*	.patient-item .left-indicator{
+		display: none;
+		margin-left: -10px;
+		width: 10px;
+		background: #139627;
+	}
+	.patient-item.selected .left-indicator{
+		display: inline-block;
+	}*/
+
+	.panel-title{
+		display: inline-block;
+		padding: 10px;
+		margin-right: 10px;
+		margin-bottom: 10px;
+	}
+
+	.panel-title.active{
+		background: #22ac38;
+		color: #fff;
+	}
+
+
+	.panel-item{
+		display: none;
+	}
+
+	.panel-item.active{
+		display: block;
+	}
+
+	.panel-container{
+		padding-top: 10px;
+	}
+
+	.top-patient-panel{
+		
+		/*border-bottom: 1px solid #ccc;*/
+		margin-bottom: 5px;
+		
+		padding-top: 5px;
+		padding-bottom: 5px;
+	}
+
+	#record-list{
+		max-height: 150px;
+		overflow-y:scroll;
+		padding: 5px;
+	}
+
+	.record-item{
+		padding: 5px;
+		border-radius: 5px;
+	}
+	.record-item:hover{
+		box-shadow: 0 0 2px #777;
+	}
+
+	.clickable{
+		cursor: pointer;
+	}
+
+	.app-nav-bar{
+		padding: 10px 20px;
+		font-weight: bold;
+	}
+	.record-section-title{
+		background: #22ac38;
+	}
+	.img-thumbnail img{
+		max-width: 100px;
+	}
+	.important-field{
+		font-weight: bold;
+	}
+	.btn-show-chart{
+		cursor: pointer;
+		padding: 2px;
+		text-align: center;
+	}
+
+	.btn-show-chart:hover{
+		background: #ccc;
+	}
+	#patient-list{
+		margin-top: 10px;
+		max-height: 400px;
+		overflow-y: scroll;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+	<div class="row">
+		<div class="col-md-12">
+			{% verbatim %}
+			<div ng-app="ViewRecordApp" id="app-container" style="display:none;">
+				<div ng-controller="ViewRecordCtrl" ng-cloak>
+					
+					<div class="row">
+						<div class="col-md-3" id="patient-nav-list">
+							<div class="app-nav-bar">
+								<span class="clickable">
+									<b>微用户列表</b>
+								</span>
+							</div>
+							<div>
+								<input class="form-control" ng-model="patientFilter" placeholder="筛选用户">
+							</div>
+							<div id="patient-list">
+								<div class="patient-item clickable {{css.selected(patient == getViewingRecordPatient())}}" ng-repeat="patient in getPatients()" 
+									 ng-click="setViewingRecordPatient(patient)">
+									<div>用户名：{{patient.getUsername()}}</div>
+									<div>ID: {{patient.getGuid()}}</div>
+									<div>姓名：{{patient.getName()}}</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-md-9" id="panels-container">
+							<div class="row top-patient-panel" ng-show="getViewingRecordPatient()">
+								<div class="col-md-4 row" >
+									<div class="col-md-6">
+										<div class="avatar-container">
+											<img ng-src="{{getViewingRecordPatient().user.avatar_url || '/static/img/empty_avatar.png' }}">
+										</div>
+									</div>
+									<div class="col-md-6">
+										<div >
+											<div class="btn-show-chart"
+											    ng-repeat="chartType in patientChartTypes"
+												ng-click="displayChart(getViewingRecordPatient(), chartType)"
+												>
+												{{chartType.displayName}}曲线
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-md-8">
+									<div id="record-list" ng-show="getViewingRecordPatient()">
+										<div class="record-item clickable" style="width:100%" ng-repeat="record in getViewingRecords()" 
+											 ng-click="displayMedicalRecord(record)">
+											<div style="padding:10px 0;">
+												<div>
+												 	<span><b>#{{record.serial_number}}</b></span>
+													<span><b>上传于</b> {{record.upload_time}}</span>
+													<span><b>检查时间</b>{{record.record_time}}</span>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="row" ng-show="getPanels().length > 0">
+								<ul class="nav nav-tabs" id="title-container">
+								    <li class="{{css.active(isPanelActive(panel))}}"  ng-repeat="panel in getPanels()">
+									  	<a href="javascript:void" ng-click="activatePanel(panel)" >
+									  		<span style="overflow:hidden;max-width:{{getPanelTitleWidth() - 55}}px;float:left;margin-right:15px;white-space:nowrap;">
+									  			{{panel.getTitle()}}
+									  		</span>
+									  		<button type="button" class="close" ng-click="dismissPanel(panel)">&times;</button>
+									  		<span class="clearfix"></span>
+									  	</a>
+								    </li>
+								</ul>
+								<div class="tab-content">
+								  <div class="tab-pane {{css.active(isPanelActive(panel))}}" ng-repeat="panel in getPanels()">
+								      	<div class="panel-container" ng-bind-html="panel.getRenderedHtml()">
+										</div>
+								  </div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			{% endverbatim %}
+		</div>
+	</div>
+</div>
+
+<script type="text/template" id="render-diagnosis-template">
+	{% verbatim %}
+	{% set data = record.data %}
+
+			<table class="table table-bordered">
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        基本信息
+	                    </strong>
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="4" class="important-field">
+	                    用户ID：{{record.patient.user.guid}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="4" class="important-field">
+	                    业务流水号：{{record.serial_number}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="2" class="important-field">
+	                    姓名：{{record.patient.user.name || ''}}
+	                </td>
+	                <td colspan="1" class="important-field">
+	                    性别：{{data.user_info.sex || ''}}
+	                </td>
+	                <td colspan="1" class="important-field">
+	                    年龄：{{data.user_info.age || ''}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="3" class="important-field">
+	                    身份证号：{{data.user_info.id_number || ''}}
+	                </td>
+	                <td colspan="1" class="important-field">
+	                    出生日期：{{data.user_info.date_born || ''}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="4" class="important-field">
+	                    住址：{{data.user_info.address || ''}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="2" class="important-field">
+	                    职业：{{data.user_info.occupation || ''}}
+	                </td>
+	                <td colspan="1" class="important-field">
+	                    婚姻情况：{{data.user_info.marriage_status || ''}}
+	                </td>
+	                <td colspan="1" class="important-field">
+	                    民族：{{data.user_info.ethnic_group || ''}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="2" class="important-field">
+	                    手机号码：{{data.user_info.cell_phone || ''}}
+	                </td>
+	                <td colspan="2" class="important-field">
+	                    家庭电话：{{data.user_info.home_phone || ''}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="3" class="important-field">
+	                    电子邮箱：{{data.user_info.email || ''}}
+	                </td>
+	                <td colspan="1" class="important-field">
+	                    微服务级别：{{data.user_info.service_level || ''}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        联系人信息
+	                    </strong>
+	                </td>
+	            </tr>
+	            {% for info in data.contact_info %}
+	            <tr>
+	                <td colspan="2">
+	                    联系人姓名：{{info.name}}
+	                </td>
+	                <td colspan="2">
+	                    与本人关系：{{info.relationship}}
+	                </td>
+	            </tr>
+	            <tr>
+	                <td colspan="2">
+	                    联系人电话：{{info.phone}}
+	                </td>
+	                <td colspan="2">
+	                    联系人邮箱：{{info.email}}
+	                </td>
+	            </tr>
+	            {% endfor %}
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        病史信息
+	                    </strong>
+	                </td>
+	            </tr>
+	            {% for item in data.health_history %}
+	            <tr>
+	                <td colspan="4">
+	                    {{item.name}}: {{item.value}}
+	                </td>
+	            </tr>
+	            {% endfor %}
+	            
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        中医体质自评表
+	                    </strong>
+	                </td>
+	            </tr>
+	            {% for diagnosis in data.diagnosis_chinese %}
+	            <tr>
+	                <td colspan="4">
+	                    测评日期：{{diagnosis.time}}
+	                    {% for result in diagnosis.results %}
+	                    <div>{{result.name}}: {{result.value}}</div>
+	                    {% endfor %}
+	                </td>
+	            </tr>
+	            {% endfor %}
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        健康五项自评表
+	                    </strong>
+	                </td>
+	            </tr>
+	            {% for diagnosis in data.self_evaluation %}
+	            <tr>
+	                <td colspan="4">
+	                    起止日期：{{diagnosis.start_time}} - {{diagnosis.end_time}}
+	                    <br>
+	                    {% for result in diagnosis.results %}
+	                    	<div>{{result.name}}: {{result.value}}</div>
+	                    {% endfor %}
+	                    
+	                    微服务人员意见：
+	                    {% for comment in diagnosis.comments %}
+	                    	<div>({{result.time}}){{comment.content}}</div>
+	                    {% endfor %}
+	                </td>
+	            </tr>
+	            {% endfor %}
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        望诊
+	                    </strong>
+	                </td>
+	            </tr>
+	            {% for diagnosis in data.diagnosis_picture %}
+	            <tr>
+	                <td style="text-align:center" ; colspan="1">
+	                    {{diagnosis.type}}
+	                </td>
+	                <td colspan="3">
+	                	<a class="img-thumbnail" href="{{diagnosis.file}}">
+	                    	<img src="{{diagnosis.file}}" alt="">
+	                    </a>
+	                    <br>
+	                    <br>
+	                    拍摄时间：{{diagnosis.time}}
+	                    <br>
+	                    {% for result in diagnosis.results %}
+	                    	{{result.name}}: {{result.value}}
+	                    <br>
+	                    {% endfor %}
+	                </td>
+	            </tr>
+	            {% endfor %}
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        闻诊
+	                    </strong>
+	                </td>
+	            </tr>
+	            {% for diagnosis in data.diagnosis_audio %}
+	            <tr>
+	                <td colspan="1">
+	                    <audio controls>
+	                        <source src="{{diagnosis.file}}" type="audio/mpeg" />
+	                        <source src="{{diagnosis.file}}" type="audio/ogg" />
+	                        <embed height="50" width="100" src="{{diagnosis.file}}" />
+	                    </audio>
+	                </td>
+	                <td colspan="3">
+	                    录音时间：{{diagnosis.time}}
+	                </td>
+	            </tr>
+	            {% endfor %}
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        常规检查
+	                    </strong>
+	                </td>
+	            </tr>
+	            {% for diagnosis in data.diagnosis_routine %}
+	            <tr>
+	                <td colspan="4">
+	                    检查时间：{{diagnosis.time}}
+	                </td>
+	            </tr>
+	            <tr style="color:red;">
+	                <td colspan="1">
+	                    <em>
+	                        检查项目
+	                    </em>
+	                </td>
+	                <td colspan="2">
+	                    <em>
+	                        检查结果
+	                    </em>
+	                </td>
+	                <td colspan="1">
+	                    <em>
+	                        检查时间
+	                    </em>
+	                </td>
+	            </tr>
+	            {% for result in diagnosis.results %}
+	            <tr style="color:red;">
+	                <td colspan="1">
+	                    <em>
+	                        {{result.name}}
+	                    </em>
+	                </td>
+	                <td colspan="2">
+	                    <em>
+	                        {{result.value}}
+	                    </em>
+	                </td>
+	                <td colspan="1">
+	                    <em>
+	                        {{result.time}}
+	                    </em>
+	                </td>
+	            </tr>
+	            {% endfor %}
+	            <tr>
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        微服务意见
+	                    </strong>
+	                </td>
+	            </tr>
+	            {% for comment in diagnosis.comments %}
+	            <tr>
+	                <td colspan="4">
+	                	({{comment.time}}):{{comment.content}}
+	                </td>
+	            </tr>
+	            {% endfor %}
+	            <tr>
+	                <td colspan="4" ; class="record-section-title">
+	                    <strong>
+	                        医生反馈
+	                    </strong>
+	                </td>
+	            </tr>
+
+	            {% if record.comments && record.comments.length > 0 %}
+		            {% for comment in record.comments %}
+			            <tr>
+			                <td colspan="4">
+			                	<span><img class="avatar-mini" src="{{comment.commentor.avatar_url  || '/static/img/empty_avatar.png'}}"></span>
+			                	({{comment.comment_time}}):{{comment.content}}
+			                </td>
+			            </tr>
+		            {% endfor %}
+		        {% else %}
+		        	<tr>
+		        		<td colspan="4">暂无反馈</td>
+		        	</tr>
+		        {% endif %}
+
+	        </table>
+	    {% endverbatim %}
+        {% if user.role.name == 'doctor' or user.role.name == 'admin' %}
+        	<div class="row comment-area-container" data-record="{% verbatim %}{{record.id}}{% endverbatim %}">
+        		<div class="col-md-8">
+            		<textarea class="form-control comment-content" rows="3"></textarea>
+        		</div>
+        		<div class="col-md-4">
+        			<div class="btn btn-success btn-add-comment">
+        				评论
+        			</div>
+        		</div>
+        	</div>
+        {% endif %}
+</script>
+
+<!-- <div class="modal fade" id="add-comment-modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title">Modal title</h4>
+      </div>
+      <div class="modal-body">
+        ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div> -->
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script src="/static/plugins/echarts-1.4.1/build/echarts-plain-original.js" type="text/javascript"></script>
+<script type="text/javascript" src="/static/plugins/fancybox/source/jquery.fancybox.js"></script>
+<script type="text/javascript" src="/static/plugins/xeditable/js/bootstrap-editable.min.js"></script>
+<script type="text/javascript" src="/static/bower_components/angular/angular.min.js"></script>
+<script type="text/javascript" src="/static/plugins/swig.min.js"></script>
+<script type="text/javascript" src="/static/scripts/dashboard/app.js"></script>
+<script type="text/javascript">
+	$(document).ready(function(){
+		$('#app-container').show();
+	});
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base_template.html' %}
+
+{% block extra_head %}
+<style type="text/css">
+	.nav-bar{
+		width: 100%;
+		text-align: center;
+	}
+	.info-nav{
+		width: 100%;
+		margin: 0;
+		padding: 0;
+	}
+	ul.info-nav li{
+		list-style: none;
+		text-align: center;
+		background: #ccc;
+		padding: 10px;
+	}
+
+	ul.info-nav li.active{
+		background: #bbb;
+	}
+
+	ul.info-nav a, ul.info-nav a:hover{
+		color: #000;
+		text-decoration: none;
+		color: #444;
+	}
+	
+</style>
+{% endblock %}
+
+{% block content %}
+
+	<div class="container">    
+		<div class="row"> 
+			<div class="col-md-3">
+				<ul class="nav nav-pills nav-stacked">
+			        <li class="active"><a href="#about" data-toggle="tab">关于</a></li>
+			        <li><a href="#news" data-toggle="tab">公告栏</a></li>
+			        <li><a href="#service" data-toggle="tab">服务条款</a></li>
+			        <li><a href="#contact" data-toggle="tab">联系我们</a></li>
+			        <li><a href="#join" data-toggle="tab">加入我们</a></li>
+			    </ul>
+
+		    </div>
+		    <div class="col-md-9">
+			    <div class="tab-content">
+			        <div class="tab-pane active" id="about">
+			            <h3><a href="http://nano.med.tsinghua.edu.cn">Supported by 清华大学医学微系统实验室</a> </h3>
+      					<h3>PowerBy <a href="http://firstprayer.github.io">Taiyuan Zhang</a></h3>
+			        </div>
+			        <div class="tab-pane fade" id="news">
+			            这里放公告栏         
+			        </div>
+			        <div class="tab-pane fade" id="service">
+			            这里放服务条款          
+			        </div>
+			        <div class="tab-pane fade" id="contact">
+			            这里放联系我们               
+			        </div>
+			        <div class="tab-pane fade" id="join">
+			            这里放加入我们     
+			        </div>
+			    </div>
+		    </div>
+	    </div>
+<!-- 	<div class="row">
+		<div class="col-md-3">
+			<ul class="info-nav">
+				<a class="info-nav-item " href="/about?key=about">
+					<li class="{% if key == 'about' %} active {% endif %}">关于</li>
+				</a>
+				<a class="info-nav-item " href="/about?key=news">
+					<li class="{% if key == 'news' %} active {% endif %}">公告栏</li>
+				</a>
+				<a class="info-nav-item " href="/about?key=about">
+					<li class="{% if key == 'about' %} active {% endif %}">联系我们</li>
+				</a>
+				<a class="info-nav-item " href="/about?key=about">
+					<li class="{% if key == 'about' %} active {% endif %}">关于</li>
+				</a>
+				<a class="info-nav-item " href="/about?key=about">
+					<li class="{% if key == 'about' %} active {% endif %}">关于</li>
+				</a>
+				
+			</ul>
+		</div>
+		<div class="col-md-9">
+			
+		</div>
+	</div> 
+  <footer>
+    <p>
+      <b><a href="http://nano.med.tsinghua.edu.cn">清华大学医学微系统实验室</a> </b>
+      <i>PowerBy <a href="http://firstprayer.github.io">Taiyuan Zhang</a></i>
+    </p>
+  </footer> -->
+	</div>
+{% endblock %}
+

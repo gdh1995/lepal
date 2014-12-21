@@ -1,0 +1,30 @@
+{
+  "name": "health_miner",
+  "version": "0.0.1",
+  "authors": [
+    "firstprayer"
+  ],
+  "moduleType": [
+    "globals"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular-xeditable": "~0.1.8",
+    "angular": "~1.2.16",
+    "jquery": "~2.1.0",
+    "bootstrap": "3.1.1",
+    "angular-sanitize": "~1.2.16",
+    "angular-bootstrap": "~0.10.0",
+    "angular-mocks": "~1.2.16",
+    "fiber": "*",
+    "swig": "*"
+  }
+}
