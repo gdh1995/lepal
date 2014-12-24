@@ -13,7 +13,7 @@ import json
 # from 1970-01-01 to 2015-01-01
 TIME_OFFSET = 1420070400
 DAY_OFFSET = 16436
-DEFAULT_TIME_STEP = 60
+# DEFAULT_TIME_STEP = 60
 
 class MongoBigDataManager:
     MONGO_DB_URL = settings.MONGO_DATABASE_URL
@@ -82,11 +82,10 @@ class MongoBigDataManager:
             return ((),) * len(self.types)
         try:
             query = {"_id": {"$in": data_indexes}}
-            data_days = list(self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes)))
-            data_days.sort(key=lambda data: data["start"], reverse=True)
+            #data_days = list(self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes)))
+            #data_days.sort(key=lambda data: data["start"], reverse=True)
             # TODO: check its speed & mongodb version
-            # data_days = self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes), sort=('start', DESCENDING))
-            data_indexes = None
+            data_days = self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes), sort=(('start', DESCENDING),))
         except Exception:
             return ((),) * len(self.types)
         result = [()] * len(self.types)
@@ -97,13 +96,16 @@ class MongoBigDataManager:
         filter_time = lambda i: self.start <= i[0] < self.end
         if self.step >= 2:
             filter_step, filter_reset = self.get_filter_by_step()
+        day_index = -1
         for data_one_day in data_days:
             type_index = -1
             for type in self.types:
                 type_index += 1
                 if type not in data_one_day:
                     continue
-                data_items = filter(filter_time, data_one_day[type])
+                data_items = data_one_day[type]
+                if day_index <= 0:
+                    data_items = filter(filter_time, data_items)
                 if len(data_items) <= 0:
                     continue
                 result_one_type = result[type_index]
@@ -119,22 +121,23 @@ class MongoBigDataManager:
                     data_items = data_items[num_over:]
                 result_one_type.extend(data_items)
                 data_items = None
+            if day_index == -1:
+                day_index = len(data_indexes) - 2
+            else:
+                day_index -= 1
         return result
     
     def get_filter_by_step(self):
-        last = 8388607
+        last = [8388607]
         step = self.step
         def filter_item_by_step(item):
-            global last
-            if item[0] < last:
-                last = item[0] / step * step
+            if item[0] < last[0]:
+                last[0] = item[0] / step * step
                 return True
             else:
                 return False
         def filter_reset():
-            global last
-            if last != 8388607:
-                last = 8388607
+            last[0] = 8388607
         return filter_item_by_step, filter_reset
 
     @staticmethod
@@ -144,6 +147,24 @@ class MongoBigDataManager:
 
 @wrap_json_api(True, csrf_exempt)
 def get_limited_data(request):
+    """
+    query visiable data which belongs to a patient.
+    TODO: Only open to those who having access to the patient.
+    Required: json request
+    - user: string, user's name which is unique
+    - types: string array, data types wanted
+    - start: int, second number from UTC Date "2015-01-01 00:00:00"
+    - end: int, should be larger than start, excluded
+    - step: int, second number of data units' interval in response, default: 0
+    Returned: json object
+    - user: string, the same user name
+    - types: string array, valid types
+    - start: the same start
+    - end: the same end
+    - type1...: a 2-D arrays, each store [time, value1, value2, ...]
+        - time: second number from UTC Date "2015-01-01 00:00:00"
+        - value1, value2, ...: may be int or float
+    """
     # TODO: check if having logged on
     data = request.read()
     if not data:
@@ -154,11 +175,11 @@ def get_limited_data(request):
         types = data["types"]
         start = data["start"]
         end = data["end"]
-        step = data["step"] if "step" in data else DEFAULT_TIME_STEP
+        step = data["step"] if "step" in data else 0
     except Exception:
         raise ApiException("unknown type of parameters")
     if not (isinstance(types, list) and isinstance(start, int) and isinstance(end, int) and isinstance(step, int)
-            and start > 0 and end > 0 and step >= 60 and step <= 86400):
+            and start > 0 and end > 0 and step >= 0 and step <= 86400):
         raise ApiException("bad value(s) of request")
     try:
         user = User.objects.get(username=user_name)

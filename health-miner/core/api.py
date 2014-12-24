@@ -876,11 +876,13 @@ def patient_statistic(request):
     return HttpResponse(json.dumps(response_data, cls=ComplexEncoder))
 
 def is_device_id_valid(device_id):
-    return True if device_id else False
+    return True if device_id and len(device_id) == 48 else False
 
 class ApiException(Exception):
-    def __init(self, message):
-        self.message = message;
+    def __init__(self, message):
+        self.message = message
+    def __str__(self):
+        return self.message
 
 def wrap_json_api(more, *args):
     if more is True:
@@ -901,9 +903,13 @@ def wrap_json_api(more, *args):
         try:
             result = more(request)
         except ApiException, exception:
-            result = {"error": exception.message}
+            result = {"error": str(exception)}
         return HttpResponse(json.dumps(result, cls=ComplexEncoder))
     return wrapper
+
+class DeviceNotExistException(ApiException):
+    def __init__(self):
+        self.message = "Please give a valid device id"
 
 @wrap_json_api(True, csrf_exempt)
 def get_user_by_device(request):
@@ -915,11 +921,12 @@ def get_user_by_device(request):
     """
     device_id = request.GET.get('device_id', '')
     if not is_device_id_valid(device_id):
-        raise ApiException("Please give a valid device id")
+        raise DeviceNotExistException()
+    device_id = device_id.lower()
     try:
         bind_re = RE_DeviceBind.objects.get(device_id=device_id)
     except RE_DeviceBind.DoesNotExist:
-        raise ApiException("Device \"" + device_id + "\" does not exist!")
+        raise DeviceNotExistException()
     user = bind_re.used_user
     if not user or user.deleted or not user.role == User.PATIENT:
         raise ApiException("Device \"" + device_id + "\" is not registered!")
@@ -944,10 +951,11 @@ def bind_device_to_user(request):
         raise ApiException('AUTHENTICATION FAIL OR NOT LOGGED IN')
     device_id = request.REQUEST.get('device_id', '')
     if not is_device_id_valid(device_id):
-        raise ApiException("Please give a valid device id")
+        raise DeviceNotExistException()
+    device_id = device_id.lower()
     try:
         bind_re = RE_DeviceBind.objects.get(device_id=device_id)
-        if bind_re.used_user:
+        if bind_re.used_user and not bind_re.used_user.deleted:
             if not bind_re.used_user.username == auth_user.username:
                 raise ApiException("Device \"" + device_id + "\" has been bound to others!")
             else:
@@ -957,9 +965,7 @@ def bind_device_to_user(request):
             bind_re.save()
             return {"result": "OK", "bind_time": bind_re.bind_time}
     except RE_DeviceBind.DoesNotExist:
-        bind_re = RE_DeviceBind(device_id=device_id, used_user=auth_user)
-        bind_re.save()
-        return {"result": "OK", "bind_time": bind_re.bind_time}
+        raise DeviceNotExistException()
 
 @wrap_json_api(True, transaction.atomic, csrf_exempt)
 def unbind_device(request):
@@ -974,11 +980,12 @@ def unbind_device(request):
         raise ApiException('AUTHENTICATION FAIL OR NOT LOGGED IN')
     device_id = request.REQUEST.get('device_id', '')
     if not is_device_id_valid(device_id):
-        raise ApiException("Please give a valid device id")
+        raise DeviceNotExistException()
+    device_id = device_id.lower()
     try:
         bind_re = RE_DeviceBind.objects.get(device_id=device_id)
         if bind_re.used_user:
-            if bind_re.used_user.username == auth_user.username:
+            if bind_re.used_user.deleted or bind_re.used_user.username == auth_user.username:
                 bind_re.used_user = None
                 bind_re.save()
                 return {"result": "OK", "unbind_time": bind_re.bind_time}
@@ -987,4 +994,4 @@ def unbind_device(request):
         else:
             return {"result": "OK", "unbind_time": bind_re.bind_time}
     except RE_DeviceBind.DoesNotExist:
-        raise ApiException("Please give a valid device id")
+        raise DeviceNotExistException()

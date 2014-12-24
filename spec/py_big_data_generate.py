@@ -79,10 +79,10 @@ class MongoBigDataManager:
             return ((),) * len(self.types)
         try:
             query = {"_id": {"$in": data_indexes}}
-            data_days = list(self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes)))
-            data_days.sort(key=lambda data: data["start"], reverse=True)
+            #data_days = list(self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes)))
+            #data_days.sort(key=lambda data: data["start"], reverse=True)
             # TODO: check its speed & mongodb version
-            # data_days = self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes), sort=('start', DESCENDING))
+            data_days = self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes), sort=(('start', DESCENDING),))
             data_indexes = None
         except Exception:
             return ((),) * len(self.types)
@@ -159,13 +159,13 @@ class MongoBigDataManager:
         })
         item = self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find({
             "start": self.start
-        })[0]
+        }, sort=(('_id', DESCENDING),))[0]
         try:
             data_id = item._id
             print "item._id is ", item._id
         except Exception:
             data_id = item["_id"]
-            print "item has no member '_id', the _id is ", data_id
+            print "item['_id'] is ", data_id
         self.get_db()[self.MONGO_TABLE_NAME_INDEX].insert({
             "user": self.user,
             "day": self.start / 86400,
@@ -173,10 +173,10 @@ class MongoBigDataManager:
         })
         print "new index:", self.get_db()[self.MONGO_TABLE_NAME_INDEX].find({
             "data": data_id
-        })[0]
+        }, sort=(('_id', DESCENDING),))[0]
 
 _backup_day = 4
-def get_limited_data(day = None):
+def get_limited_data(day=None, user=29):
     dbm = MongoBigDataManager()
     dbm.set_user(29)
     day = _backup_day if day is None else day
@@ -193,11 +193,11 @@ def get_limited_data(day = None):
             result[i] = res[j]
     return result
     
-def make_data_one_day(day = 4, user=29):
+def make_data_one_day(day=4, user=29):
     global _backup_day
     _backup_day = day
     dbm = MongoBigDataManager()
-    dbm.set_user(29)
+    dbm.set_user(user)
     dbm.set_start(day * 86400)
     dbm.set_end(day * 86400 + 86400)
     dbm.set_step(0)
