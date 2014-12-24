@@ -917,7 +917,7 @@ def get_user_by_device(request):
     if not is_device_id_valid(device_id):
         raise ApiException("Please give a valid device id")
     try:
-        bind_re = RE_DeviceBind.objects.get(device_id = device_id)
+        bind_re = RE_DeviceBind.objects.get(device_id=device_id)
     except RE_DeviceBind.DoesNotExist:
         raise ApiException("Device \"" + device_id + "\" does not exist!")
     user = bind_re.used_user
@@ -946,7 +946,7 @@ def bind_device_to_user(request):
     if not is_device_id_valid(device_id):
         raise ApiException("Please give a valid device id")
     try:
-        bind_re = RE_DeviceBind.objects.get(device_id = device_id)
+        bind_re = RE_DeviceBind.objects.get(device_id=device_id)
         if bind_re.used_user:
             if not bind_re.used_user.username == auth_user.username:
                 raise ApiException("Device \"" + device_id + "\" has been bound to others!")
@@ -957,7 +957,7 @@ def bind_device_to_user(request):
             bind_re.save()
             return {"result": "OK", "bind_time": bind_re.bind_time}
     except RE_DeviceBind.DoesNotExist:
-        bind_re = RE_DeviceBind(device_id = device_id, used_user=auth_user)
+        bind_re = RE_DeviceBind(device_id=device_id, used_user=auth_user)
         bind_re.save()
         return {"result": "OK", "bind_time": bind_re.bind_time}
 
@@ -976,7 +976,7 @@ def unbind_device(request):
     if not is_device_id_valid(device_id):
         raise ApiException("Please give a valid device id")
     try:
-        bind_re = RE_DeviceBind.objects.get(device_id = device_id)
+        bind_re = RE_DeviceBind.objects.get(device_id=device_id)
         if bind_re.used_user:
             if bind_re.used_user.username == auth_user.username:
                 bind_re.used_user = None

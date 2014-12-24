@@ -32,6 +32,9 @@ DATABASES = {
 }
 
 MONGO_HOST, MONGO_PORT = '127.0.0.1', 27017
+MONGO_DATABASE_URL = "mongodb://%s:%d/health_miner" % (MONGO_HOST, MONGO_PORT)
+MONGO_BIG_DATA_INDEX = "bigdata_index"
+MONGO_BIG_DATA_DATA = "bigdata_data"
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
