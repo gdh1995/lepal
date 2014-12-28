@@ -893,7 +893,7 @@ def wrap_json_api(more, *args):
                     result = func(request)
                 except Exception, exception:
                     result = {"error": str(exception)}
-                return HttpResponse(json.dumps(result, cls=ComplexEncoder))
+                return HttpResponse(json.dumps(result, cls=ComplexEncoder), content_type="application/json")
             ret = wrapper
             for wrap_i in backup_args[::-1]:
                 ret = wrap_i(ret)
@@ -904,7 +904,7 @@ def wrap_json_api(more, *args):
             result = more(request)
         except ApiException, exception:
             result = {"error": str(exception)}
-        return HttpResponse(json.dumps(result, cls=ComplexEncoder))
+        return HttpResponse(json.dumps(result, cls=ComplexEncoder), content_type="application/json")
     return wrapper
 
 class DeviceNotExistException(ApiException):
