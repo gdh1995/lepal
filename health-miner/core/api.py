@@ -1011,7 +1011,7 @@ def upload_device_record(request):
             data.json ---- Contains a json string; All image/audio path is relative
                 username
                 license
-                uploadtime
+                recordtime
                 ...
             other files
     """
@@ -1021,7 +1021,7 @@ def upload_device_record(request):
     # 1. Authentication    
     user = get_auth_user(request)
 
-    if user is None or user.role not is User.PATIENT or user.deleted:
+    if user is None or not user.role == User.PATIENT or user.deleted:
         raise ApiException('AUTHENTICATION FAIL OR NOT LOGGED IN')
     # 2. Check if any field is missing
     for field in (u'device_id', u'record_time'):
@@ -1029,8 +1029,9 @@ def upload_device_record(request):
             raise ApiException('%s FIELD MUST BE PROVIDED' %(field))
 
     if not files.has_key(u'data_file'):
-        raise ApiException('%s FIELD MUST BE PROVIDED' %(file_field))
+        raise ApiException('data_file FIELD MUST BE PROVIDED')
 
+    record_time = data['record_time']
     try:
         record_time = datetime.strptime(record_time, DEFAULT_TIME_FORMAT)
     except Exception:
