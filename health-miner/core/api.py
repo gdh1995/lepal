@@ -995,3 +995,92 @@ def unbind_device(request):
             return {"result": "OK", "unbind_time": bind_re.bind_time}
     except RE_DeviceBind.DoesNotExist:
         raise DeviceNotExistException()
+
+
+@wrap_json_api(True, transaction.commit_on_success, csrf_exempt)
+def upload_device_record(request):
+    """
+    Take upload data got by a device and create a medical record for a patient
+    Only open to patients
+    Required:
+    - (auth), a patient user
+    - device_id, a device's license
+    - record_time, when was it uploaded
+    - data_file, a zip file following a certain directory structure like this:
+        root
+            data.json ---- Contains a json string; All image/audio path is relative
+                username
+                license
+                uploadtime
+                ...
+            other files
+    """
+    data = request.POST
+    files = request.FILES
+    
+    # 1. Authentication    
+    user = get_auth_user(request)
+
+    if user is None or user.role not is User.PATIENT or user.deleted:
+        raise ApiException('AUTHENTICATION FAIL OR NOT LOGGED IN')
+    # 2. Check if any field is missing
+    for field in (u'device_id', u'record_time'):
+        if data.get(field, None) is None:
+            raise ApiException('%s FIELD MUST BE PROVIDED' %(field))
+
+    if not files.has_key(u'data_file'):
+        raise ApiException('%s FIELD MUST BE PROVIDED' %(file_field))
+
+    try:
+        record_time = datetime.strptime(record_time, DEFAULT_TIME_FORMAT)
+    except Exception:
+        raise ApiException('record_time format must follow %s' %(DEFAULT_TIME_FORMAT))
+    
+    # 4. Extract the file
+    save_zip_path = config.get_new_zip_file_path()
+    print "SAVING ZIP TO", save_zip_path
+
+    fs = open(save_zip_path, 'wb')
+    fs.write(files['data_file'].read())
+    fs.close()
+
+    record_file_dir = config.get_new_record_file_directory()
+    zip_file_obj = zipfile.ZipFile(save_zip_path, 'r')
+    zip_file_obj.extractall(record_file_dir)
+    print 'UNZIP TO %s' %(record_file_dir)    
+
+    # 5. There must be a file called data.json
+    data_file = os.path.join(record_file_dir, 'data.json')
+
+    if not os.path.exists(data_file):
+        raise ApiException('UPLOAD FILE CONTAINS NO data.json')
+
+    # 6. Load content and insert into db
+    data_content = json.loads(open(data_file).read())
+    def replace_file_path(obj):
+        if isinstance(obj, dict):
+            if obj.has_key('file'):
+                obj['file'] = os.path.join(record_file_dir, obj['file']).replace('\\', '/').replace(settings.ROOT_DIR, '')
+
+            for key in obj.keys():
+                print key
+                replace_file_path(obj[key])
+        elif isinstance(obj, list):
+            for item in obj:
+                replace_file_path(item)
+
+    replace_file_path(data_content)
+
+    mongo_db = get_mongo_db()
+    data_id = add_medical_record_data(data_content, db=mongo_db)
+    
+    # medical_record = MedicalRecord(patient_id=patient.id, 
+                                   # serial_number=serial_number, 
+                                   # uploader_id=user.id,
+                                   # upload_time=datetime.now(),
+                                   # data_id=str(data_id),
+                                   # record_time=record_time)
+
+    # medical_record.save()
+
+    return {'success': True, 'json': data_content}
