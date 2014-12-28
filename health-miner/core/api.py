@@ -917,9 +917,9 @@ def get_user_by_device(request):
     Getting a user's information using a device id.
     All allowed.
     Required:
-    - device_id (in GET)
+    - device_id (in POST)
     """
-    device_id = request.GET.get('device_id', '')
+    device_id = request.POST.get('device_id', '')
     if not is_device_id_valid(device_id):
         raise DeviceNotExistException()
     device_id = device_id.lower()
@@ -949,7 +949,7 @@ def bind_device_to_user(request):
     auth_user = get_auth_user(request)
     if auth_user is None:
         raise ApiException('AUTHENTICATION FAIL OR NOT LOGGED IN')
-    device_id = request.REQUEST.get('device_id', '')
+    device_id = request.POST.get('device_id', '')
     if not is_device_id_valid(device_id):
         raise DeviceNotExistException()
     device_id = device_id.lower()
@@ -978,7 +978,7 @@ def unbind_device(request):
     auth_user = get_auth_user(request)
     if auth_user is None:
         raise ApiException('AUTHENTICATION FAIL OR NOT LOGGED IN')
-    device_id = request.REQUEST.get('device_id', '')
+    device_id = request.POST.get('device_id', '')
     if not is_device_id_valid(device_id):
         raise DeviceNotExistException()
     device_id = device_id.lower()
@@ -1004,9 +1004,9 @@ def upload_device_record(request):
     Only open to patients
     Required:
     - (auth), a patient user
-    - device_id, a device's license
-    - record_time, when was it uploaded
-    - data_file, a zip file following a certain directory structure like this:
+    - device_id, [string] a device's license
+    - record_time, [string] when was it uploaded
+    - data_file, [file] a zip file following a certain directory structure like this:
         root
             data.json ---- Contains a json string; All image/audio path is relative
                 username
