@@ -82,10 +82,10 @@ class MongoBigDataManager:
             return ((),) * len(self.types)
         try:
             query = {"_id": {"$in": data_indexes}}
-            #data_days = list(self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes)))
+            #data_days = list(self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query))
             #data_days.sort(key=lambda data: data["start"], reverse=True)
             # TODO: check its speed & mongodb version
-            data_days = self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, limit=len(data_indexes), sort=(('start', DESCENDING),))
+            data_days = self.get_db()[self.MONGO_TABLE_NAME_BIGDATA].find(query, sort=(('start', DESCENDING),))
         except Exception:
             return ((),) * len(self.types)
         result = [()] * len(self.types)
@@ -101,26 +101,24 @@ class MongoBigDataManager:
             type_index = -1
             for type in self.types:
                 type_index += 1
-                if type not in data_one_day:
-                    continue
-                data_items = data_one_day[type]
-                if day_index <= 0:
-                    data_items = filter(filter_time, data_items)
-                if len(data_items) <= 0:
-                    continue
                 result_one_type = result[type_index]
                 num_over = len(result_one_type) - self.limit
                 if num_over >= 0:
                     continue
+                data_items = data_one_day.get(type, ())
+                if day_index <= 0:
+                    data_items = filter(filter_time, data_items)
+                if len(data_items) <= 0:
+                    continue
                 if self.step >= 86400:
-                    data_items = (data_items[0], )
+                    data_items = [data_items[0]]
                 elif self.step >= 61:
-                    data_items = filter(filter_step, data_items[::-1])
                     filter_reset()
+                    data_items = filter(filter_step, data_items[::-1])[-num_over-1::-1]
                 else:
                     data_items = data_items[num_over:]
-                result_one_type.extend(data_items)
-                data_items = None
+                data_items.extend(result_one_type)
+                result[type_index] = data_items
             if day_index == -1:
                 day_index = len(data_indexes) - 2
             else:
