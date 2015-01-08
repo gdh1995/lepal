@@ -917,9 +917,9 @@ def get_user_by_device(request):
     Getting a user's information using a device id.
     All allowed.
     Required:
-    - device_id (in POST)
+    - device_id (in GET or POST)
     """
-    device_id = request.POST.get('device_id', '')
+    device_id = request.REQUEST.get('device_id', '')
     if not is_device_id_valid(device_id):
         raise DeviceNotExistException()
     device_id = device_id.lower()
