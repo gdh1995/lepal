@@ -1027,6 +1027,7 @@ def upload_device_record(request):
                 ...
             other files
     """
+    return {"msg":"OK"}
     data = request.POST
     files = request.FILES
     
