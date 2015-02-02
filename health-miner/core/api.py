@@ -539,7 +539,6 @@ def remove_overseer(request):
 
 
 @csrf_exempt
-@transaction.commit_on_success
 def get_overseeing_patients(request):
     """
     Get the patient list a user have access to 
@@ -566,7 +565,9 @@ def get_overseeing_patients(request):
 
     patients_data = map(lambda p: view_model(p), patients)
 
-    return HttpResponse(json.dumps({'patients': patients_data}, cls=ComplexEncoder))
+    response = HttpResponse(json.dumps({'patients': patients_data}, cls=ComplexEncoder))
+    response['Access-Control-Allow-Origin'] = '*'
+    return response
 
 @csrf_exempt
 @transaction.commit_on_success
@@ -614,7 +615,9 @@ def get_patient_medical_records(request):
         record['data'] = data_obj
         record['comments'] = map(lambda c: view_model(c), RecordComment.objects.filter(deleted=0, record_id=record['id']))
 
-    return HttpResponse(json.dumps({'records': records}, cls=ComplexEncoder))
+    response = HttpResponse(json.dumps({'records': records}, cls=ComplexEncoder))
+    response['Access-Control-Allow-Origin'] = '*'
+    return response
 
 @csrf_exempt
 @transaction.commit_on_success
@@ -829,8 +832,9 @@ def add_comment(request):
                                 commentor_id=auth_user.id)
     comment_obj.save()
 
-    return HttpResponse(json.dumps(view_model(comment_obj), cls=ComplexEncoder))
-
+    response = HttpResponse(json.dumps(view_model(comment_obj), cls=ComplexEncoder))
+    response['Access-Control-Allow-Origin'] = '*'
+    return response
 
 @csrf_exempt
 @transaction.commit_on_success
@@ -873,7 +877,9 @@ def patient_statistic(request):
             statistic = get_patient_statistic(patient.id, key, limit=100, start_time=start_time, end_time=end_time)
             response_data[key] = statistic
 
-    return HttpResponse(json.dumps(response_data, cls=ComplexEncoder))
+    response = HttpResponse(json.dumps(response_data, cls=ComplexEncoder))
+    response['Access-Control-Allow-Origin'] = '*'
+    return response
 
 def is_device_id_valid(device_id):
     return True if device_id and len(device_id) == 48 else False
@@ -893,7 +899,10 @@ def wrap_json_api(more, *args):
                     result = func(request)
                 except Exception, exception:
                     result = {"error": str(exception)}
-                return HttpResponse(json.dumps(result, cls=ComplexEncoder), content_type="application/json")
+                response = HttpResponse(json.dumps(result, cls=ComplexEncoder), content_type="application/json;charset=UTF-8")
+                response['Access-Control-Allow-Origin'] = '*'
+                response['Access-Control-Allow-Headers'] = 'x-requested-with,content-type'
+                return response
             ret = wrapper
             for wrap_i in backup_args[::-1]:
                 ret = wrap_i(ret)
@@ -904,7 +913,10 @@ def wrap_json_api(more, *args):
             result = more(request)
         except ApiException, exception:
             result = {"error": str(exception)}
-        return HttpResponse(json.dumps(result, cls=ComplexEncoder), content_type="application/json")
+        response = HttpResponse(json.dumps(result, cls=ComplexEncoder), content_type="application/json;charset=UTF-8")
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Headers'] = 'x-requested-with,content-type'
+        return response
     return wrapper
 
 class DeviceNotExistException(ApiException):
