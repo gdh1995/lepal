@@ -1,11 +1,7 @@
 angular.module('ViewRecordApp', [])
 	.controller('ViewRecordCtrl', ['$scope', '$http', '$q', 'apiUrls', 'renderDiagnosis', 'renderChart', 'patientChartTypes', '$sce', 
 								   function(scope, http, $q, apiUrls, renderDiagnosis, renderChart, patientChartTypes, $sce){
-    var real_http = http;
-    http = FakeHttp;
-    FakeHttp.urls = apiUrls;
-    
-		var extend = function(Child, Parent){
+    var extend = function(Child, Parent){
 	        var F = function(){};
 	　　　　F.prototype = Parent.prototype;
 	　　　　Child.prototype = new F();
@@ -79,7 +75,7 @@ angular.module('ViewRecordApp', [])
 		Patient.prototype.getStatistic = function(name,start,end){
 			var defered = $q.defer();
 
-			real_http.post('http://115.28.88.10/api/medical_records/json', {
+			http.post('http://115.28.88.10/api/medical_records/json', {
         user: this.user.username,
         types: [name],
         //start: 403200,
