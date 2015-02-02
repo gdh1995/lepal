@@ -1,7 +1,10 @@
 angular.module('ViewRecordApp', [])
 	.controller('ViewRecordCtrl', ['$scope', '$http', '$q', 'apiUrls', 'renderDiagnosis', 'renderChart', 'patientChartTypes', '$sce', 
 								   function(scope, http, $q, apiUrls, renderDiagnosis, renderChart, patientChartTypes, $sce){
-
+    var real_http = http;
+    http = FakeHttp;
+    FakeHttp.urls = apiUrls;
+    
 		var extend = function(Child, Parent){
 	        var F = function(){};
 	　　　　F.prototype = Parent.prototype;
@@ -56,13 +59,34 @@ angular.module('ViewRecordApp', [])
 		Patient.prototype.getId = function(){
 			return this.user.username;
 		}
+		scope.getDatepicker = function(patient,chartType) {
+			var panel = document.body.getElementsByClassName("tab-pane active")[0];
+			var dateController = panel.getElementsByClassName("Wdate")[0];
+			var start = dateController.value
+			//得到查询日期当天00:00分对应的毫秒数
+			start = getDays(start) - 28800;
+			console.log(start)
+			function getDays(dateObj){
+				return parseInt((new Date(dateObj)).getTime() / 1000) - 1420070400;
+			}
+			//vv为查询日期23:59对应的毫秒数
+			var end = start + 86399;
 
-		Patient.prototype.getStatistic = function(name){
+			console.log(start);
+			console.log(end);
+			scope.displayChart(patient, chartType,start,end)
+		}
+		Patient.prototype.getStatistic = function(name,start,end){
 			var defered = $q.defer();
-			var params = {'patient_id': this.id};
-			params[name] = true;
 
-			http.get(apiUrls.apiLoadPatientStatistic, {'params': params})
+			real_http.post('http://115.28.88.10/api/medical_records/json', {
+        user: this.user.username,
+        types: [name],
+        //start: 403200,
+        //end: 489599
+		start:start,
+		end:end
+      })
 				.success(function(res){
 					defered.resolve(res);
 				})
@@ -110,7 +134,7 @@ angular.module('ViewRecordApp', [])
 		}
 
 		Panel.prototype.getTitle = function(){return this.title;}
-
+		Panel.prototype.getChartType = function(){return this.chartType;}
 		var MedicalRecordDisplayPanel = function(data){
 			for(key in data){
 				this[key] = data[key];
@@ -137,13 +161,15 @@ angular.module('ViewRecordApp', [])
 			this.render();
 		}
 		extend(PatientChartDispalyPanel, Panel);
-
+		//数据绘图
 		PatientChartDispalyPanel.prototype.render = function(){
 			var self = this,
 				patient = this.patient,
+				start = this.start,
+				end = this.end,
 				chartName = this.chartType.name;
 
-			var promise = patient.getStatistic(chartName);
+			var promise = patient.getStatistic(chartName,start,end);
 			promise.then(function(res){
 				var html = renderChart(chartName, res[chartName]);
 				self.renderedHtml = $sce.trustAsHtml(html);
@@ -229,20 +255,25 @@ angular.module('ViewRecordApp', [])
 			scope.addPanel(newPanel);
 		}
 
-		scope.displayChart = function(patient, chartType){
-			var existPanel = null;
+		scope.displayChart = function(patient, chartType,start,end){
 
+			var existPanel = null;
 			scope.getPanels().forEach(function(p){
 				if(p instanceof PatientChartDispalyPanel && p.patient.id == patient.id && p.chartType == chartType){
 					existPanel = p;
 				}
 			});
 			if(existPanel){
-				scope.activatePanel(existPanel);
+				//scope.activatePanel(existPanel);
+				scope.dismissPanel(existPanel);
+				var newPatientChartPanel = new PatientChartDispalyPanel({'patient': patient, 'chartType': chartType,
+					'title': patient.getName() + chartType.displayName,'start':start,'end':end});
+				scope.addPanel(newPatientChartPanel);
 				return;
 			}
 
-			var newPatientChartPanel = new PatientChartDispalyPanel({'patient': patient, 'chartType': chartType, 'title': patient.getName() + chartType.displayName});
+			var newPatientChartPanel = new PatientChartDispalyPanel({'patient': patient, 'chartType': chartType,
+				'title': patient.getName() + chartType.displayName,'start':start,'end':end});
 			scope.addPanel(newPatientChartPanel);
 		}
 
@@ -330,7 +361,7 @@ angular.module('ViewRecordApp', [])
 
 			var data = {'medical_record_id': recordId, 'comment': commentContent};
 
-			$.ajax({
+			$.ajax || $.ajax({
 				url: apiUrls.apiAddComment, 
 				data: data,
 				dataType: 'json',
@@ -397,15 +428,12 @@ angular.module('ViewRecordApp', [])
 			hasData = true,
 			htmlForNoData = '<div>暂时没有数据</div>';
 
-			if(!data.length){
+			if(!data || !data.length){
 				return htmlForNoData;
 			}
 
 			// Only consider two weeks data
-			var today = new Date(),
-				twoWeeksAgo = new Date(today.getTime() - 3600 * 1000 * 24 * 14),
-				minDay = getDays(twoWeeksAgo),
-				maxDay = getDays(today);
+			var today = new Date()
 
 			var chartTitle = null,
 				legends = null,
@@ -417,26 +445,26 @@ angular.module('ViewRecordApp', [])
 			switch(chartName){
 				case patientChartTypes.BLOOD_PRESSURE:
 					chartTitle = '血压曲线';
-					legends = ['血压(mmHg)-峰值', '血压(mmHg)-谷值'];
-					yAxisFormatter = '{value}';
+					legends = ['血压-峰值', '血压-谷值'];
+					yAxisFormatter = '{value} mmHg';
 					seriesKeys = ['low', 'high'];
 					break;
 				case patientChartTypes.BODY_TEMPERATURE:
 					chartTitle = '体温曲线';
-					legends = ['体温(摄氏度）'];
-					yAxisFormatter = '{value}';
+					legends = ['体温'];
+					yAxisFormatter = '{value} ℃';
 					seriesKeys = ['value'];
 					break;
 				case patientChartTypes.BLOOD_GLUCOSE:
 					chartTitle = '血糖曲线';
 					legends = ['血糖'];
-					yAxisFormatter = '{value}';
+					yAxisFormatter = '{value} mmol/L';
 					seriesKeys = ['value'];
 					break;
 				case patientChartTypes.HEART_RATE:
 					chartTitle = '心率曲线';
 					legends = ['心率'];
-					yAxisFormatter = '{value}';
+					yAxisFormatter = '{value} 次/min';
 					seriesKeys = ['value'];
 					break;
 				default:
@@ -444,208 +472,160 @@ angular.module('ViewRecordApp', [])
 					return '<div>曲线类型不合法</div>'
 			}
 
-			// data is a list of item {time: .., value: ...}
-			data = data.map(function(d){
-				var mapData = {time: new Date(d.time)};
-				seriesKeys.forEach(function(seriesKey){
-					mapData[seriesKey] = parseFloat(d[seriesKey]);
-				});
-				mapData.daysSince19700101 = getDays(mapData.time);
-				return mapData;
-			}).filter(function(d){
-				var days = getDays(d.time);
-				if(days <= maxDay && days >= minDay){
-					return true;
-				}else{
-					return false;
-				}
-			});
+			// data is a [[time1,value1],[time2,value2]...[time,value]]
 
-			// Figure out which days' data is available
-			var daysMap = {};
-			data.forEach(function(d){
-				if(daysMap[d.daysSince19700101]){
-					seriesKeys.forEach(function(seriesKey){
-						daysMap[d.daysSince19700101][seriesKey].push(d[seriesKey]);
-					});
-				}else{
-					daysMap[d.daysSince19700101] = {date: new Date(d.daysSince19700101 * 3600 * 1000 * 24)};
-					seriesKeys.forEach(function(seriesKey){
-						daysMap[d.daysSince19700101][seriesKey] = [d[seriesKey]];
-					});
-				}
-			});
 			var days = [];
-			for(key in daysMap){days.push(key);}
-
-			days = days.sort(function(d1, d2){
-				return d1 - d2;
-			});
-
-			xAxisLabels = days.map(function(d){
-				return toDateString(daysMap[d].date);
-			});
+			for(var i=0;i<data.length;i++){
+				days[i] = toDateString(data[i][0]);
+			}
+			xAxisLabels = days;
+			var last = data [data.length-1][0];
+			last = new Date((last + 1420070400) * 1000);
+			last = last.getFullYear() + '-' + (last.getMonth()+1) + '-' + last.getDate();
 
 			if(chartName == patientChartTypes.BLOOD_PRESSURE){
-				lowY = days.map(function(d){
-					return average(daysMap[d].low);
-				});
+				var lowvalue = [];
+				for(var i=0;i<data.length;i++){
+					lowvalue[i] = data[i][1];
+				}
+				lowY = lowvalue;
 
-				highY = days.map(function(d){
-					return average(daysMap[d].high);
-				});
+				var highvalue = [];
+				for(var i=0;i<data.length;i++){
+					highvalue[i] = data[i][2];
+				}
+				highY = highvalue;
 
 				series = [
-			        {
-			            name:'血压（高）',
-			            type:'line',
-			            itemStyle: {
-			                normal: {
-			                    lineStyle: {
-			                        shadowColor : 'rgba(0,0,0,0.4)',
-			                        shadowBlur: 5,
-			                        shadowOffsetX: 3,
-			                        shadowOffsetY: 3
-			                    }
-			                }
-			            },
-			            data: highY,
-			            markPoint : {
-			                data : [
-			                    {type : 'max', name: '最大值'},
-			                    {type : 'min', name: '最小值'}
-			                ]
-			            },
-			            markLine : {
-			                data : [
-			                    {type : 'average', name: '平均值'}
-			                ]
-			            }
-			        },
-			        {
-			            name:'血压（低）',
-			            type:'line',
-			            itemStyle: {
-			                normal: {
-			                    lineStyle: {
-			                        shadowColor : 'rgba(0,0,0,0.4)',
-			                        shadowBlur: 5,
-			                        shadowOffsetX: 3,
-			                        shadowOffsetY: 3
-			                    }
-			                }
-			            },
-			            data: lowY,
-			            markPoint : {
-			                data : [
-			                    {type : 'max', name: '最大值'},
-			                    {type : 'min', name: '最小值'}
-			                ]
-			            },
-			            markLine : {
-			                data : [
-			                    {type : 'average', name: '平均值'}
-			                ]
-			            }
-			        }
+					{
+						name:legends[0],
+						type:'line',
+						itemStyle: {
+							normal: {
+								lineStyle: {
+									shadowColor : 'rgba(0,0,0,0.4)',
+									shadowBlur: 5,
+									shadowOffsetX: 3,
+									shadowOffsetY: 3
+								}
+							}
+						},
+						data: highY
+					},
+					{
+						name:legends[1],
+						type:'line',
+						itemStyle: {
+							normal: {
+								lineStyle: {
+									shadowColor : 'rgba(0,0,0,0.4)',
+									shadowBlur: 5,
+									shadowOffsetX: 3,
+									shadowOffsetY: 3
+								}
+							}
+						},
+						data: lowY
+					}
 			    ]
 
-			}else if(chartName == patientChartTypes.BODY_TEMPERATURE 
+			}
+            else if(chartName == patientChartTypes.BODY_TEMPERATURE 
 					|| chartName == patientChartTypes.BLOOD_GLUCOSE 
 					|| chartName == patientChartTypes.HEART_RATE){
-				
-				Y = days.map(function(d){
-					return average(daysMap[d].value);
-				});
+				var value = [];
+				for(var i=0;i<data.length;i++){
+					value[i] = data[i][1];
+				}
+				Y = value;
 
 				series = [
-			        {
-			            name:'体温',
-			            type:'line',
-			            itemStyle: {
-			                normal: {
-			                    lineStyle: {
-			                        shadowColor : 'rgba(0,0,0,0.4)',
-			                        shadowBlur: 5,
-			                        shadowOffsetX: 3,
-			                        shadowOffsetY: 3
-			                    }
-			                }
-			            },
-			            data: Y,
-			            markPoint : {
-			                data : [
-			                    {type : 'max', name: '最大值'},
-			                    {type : 'min', name: '最小值'}
-			                ]
-			            },
-			            markLine : {
-			                data : [
-			                    {type : 'average', name: '平均值'}
-			                ]
-			            }
-			        }
-			    ]
+					{
+						name:legends,
+						type:'line',
+						itemStyle: {
+							normal: {
+								lineStyle: {
+									shadowColor : 'rgba(0,0,0,0.4)',
+									shadowBlur: 5,
+									shadowOffsetX: 3,
+									shadowOffsetY: 3
+								}
+							}
+						},
+						data: Y
+					}
+				]
 				       
 			}
 
 
 			option = {
-			    title : {
-			        text: chartTitle,
-			    },
-			    tooltip : {
-			        trigger: 'axis'
-			    },
-			    legend: {
-			        data: legends
-			    },
-			    toolbox: {
-			        show : true,
-			        feature : {
-			            mark : {show: true},
-			            dataView : {show: true, readOnly: false},
-			            magicType : {show: true, type: ['line', 'bar']},
-			            restore : {show: true},
-			            saveAsImage : {show: true}
-			        }
-			    },
-			    calculable : true,
-			    xAxis : [
-			        {
-			            type : 'category',
-			            boundaryGap : false,
-			            data : xAxisLabels
-			        }
-			    ],
-			    yAxis : [
-			        {
-			            type : 'value',
-			            axisLabel : {
-			                formatter: yAxisFormatter
-			            },
-			            splitArea : {show : true}
-			        }
-			    ],
-			    series : series
+				title : {
+					text: chartTitle,
+					subtext:last
+				},
+				tooltip : {
+					trigger: 'axis'
+				},
+
+				legend: {
+					data: legends
+				},
+
+				toolbox: {
+					show : true,
+					feature : {
+						dataZoom: {show: true},
+						mark : {show: false},
+						dataView : {show: true},
+						magicType : {show: true, type: ['line', 'bar']},
+						restore : {show: true},
+						saveAsImage : {show: true}
+					}
+				},
+				dataZoom: {
+					show: true,
+					//实时显示数据（是否跟随拖动更新数据）
+					realtime: true,
+					//滚动条初始位置，按照百分比来定位
+					fillerColor: 'rgba(2218,112,214,0.4)',
+					dataBackgroundColor: 'rgba(65,105,225,0.5)',
+					start: 0,
+					end: 30
+				},
+				xAxis : [
+					{
+						type : 'category',
+						boundaryGap : false,
+						data : xAxisLabels
+					}
+				],
+				yAxis : [
+					{
+						scale:true,
+						type : 'value',
+						axisLabel : {
+							formatter: yAxisFormatter
+						},
+						splitArea : {show : true}
+					}
+				],
+				series : series
 			};          
 
 			// Write to html
-			var scriptHtml = '<script type="text/javascript">'
-							 + 'var chartInstance = echarts.init(document.getElementById("DOM_ID"));'
-							 + 'var option=' + JSON.stringify(option) + ';'
-							 + 'chartInstance.setOption(option);'
-			var html = (htmlDom + scriptHtml);
-			html = html.replace('DOM_ID', htmlDomId).replace('DOM_ID', htmlDomId);
+			var html = htmlDom.replace('DOM_ID', htmlDomId) + '<script type="text/javascript">'
+                + 'var chartInstance = echarts.init(document.getElementById("' + htmlDomId + '"));'
+                + 'var option=' + JSON.stringify(option) + ';'
+                + 'chartInstance.setOption(option);'
+                + '</script>';
 			return html;
 		}
 
 		/**
 		* Some helper function
 		*/
-		function getDays(dateObj){
-			return parseInt(dateObj.getTime() / 3600 / 1000 / 24);
-		}
 
 		function average(dataList){
 			var sum = 0;
@@ -656,6 +636,8 @@ angular.module('ViewRecordApp', [])
 		}
 
 		function toDateString(dateObj){
-			return dateObj.getFullYear() + '-' + (dateObj.getMonth() + 1) + '-' + dateObj.getDate();
+			var time = new Date((dateObj + 1420070400) * 1000)
+			return time.getHours() + ':' + time.getMinutes();
+			//return time.getFullYear() + '-' +(time.getMonth() + 1 ) + '-' + time.getDate();
 		}
 	}]);
