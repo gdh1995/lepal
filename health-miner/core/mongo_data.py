@@ -53,7 +53,7 @@ class MongoBigDataManager:
         self.end = end
 
     def set_step(self, step):
-        self.step = step
+        self.step = step if step > 60 else 0
 
     def set_limit(self, limit):
         self.limit = limit
@@ -191,7 +191,7 @@ def get_limited_data(request):
     dbm.set_end(end)
     dbm.set_step(step)
     dbm.set_types(types)
-    result = {"user": user_name, "start": dbm.start, "end": dbm.end, "types": dbm.types}
+    result = {"user": user_name, "start": dbm.start, "end": dbm.end, "types": dbm.types, "step": dbm.step if dbm.step > 0 else 60}
     if dbm.is_input_valid():
         res = dbm.select_data_to_array()
         j = -1
