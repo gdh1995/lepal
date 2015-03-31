@@ -269,7 +269,7 @@
 	function getSearchQuery(){ return $('#user-query').val();};
 
 	function changeQuery(role, query){
-		window.location.href = '/user_management?role=' + role + '&query=' + query;
+		window.location.href = 'user_management?role=' + role + '&query=' + query;
 	}
 	function switchRole(role){
 		changeQuery(role, currentQuery);

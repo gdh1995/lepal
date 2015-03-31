@@ -41,13 +41,13 @@
 		真实姓名：{{user.name | default_if_none:"未设置"}}
 	</div>
 	<ul class="info-nav">
-		<a class="info-nav-item " href="/user/info_update">
+		<a class="info-nav-item " href="info_update">
 			<li class="{% if nav == 'info_update' %} active {% endif %}">个人信息</li>
 		</a>
-		<a class="info-nav-item " href="/user/upload_avatar">
+		<a class="info-nav-item " href="upload_avatar">
 			<li class="{% if nav == 'upload_avatar' %} active {% endif %}">上传头像</li>
 		</a>
-		<a class="info-nav-item " href="/user/change_password">
+		<a class="info-nav-item " href="change_password">
 			<li class="{% if nav == 'change_password' %} active {% endif %}">修改密码</li>
 		</a>
 		

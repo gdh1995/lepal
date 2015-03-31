@@ -126,6 +126,8 @@ MIDDLEWARE_CLASSES = (
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
+MHELP_RREFIX = "mhelp"
+
 ROOT_URLCONF = 'health_miner.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.

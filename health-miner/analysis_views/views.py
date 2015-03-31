@@ -1,34 +1,35 @@
 # coding=utf-8
 
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import render_to_response
 from core.models import *
 from django.db.models import Q
 from core.view_model import view_model
+from django.http.response import HttpResponseRedirect
 
 def login(request):
-	return render_to_response('./login.html', locals())
+	return render_to_response('login.html', locals())
 
 def dashboard(request):
 	user = request.session.get('user')
 	if user is None:
-		return redirect('/login')
+		return HttpResponseRedirect('login')
 	user = get_login_user(request)
 	user = view_model(user)
-	
-	return render_to_response('./dashboard.html', locals())
+
+	return render_to_response('dashboard.html', locals())
 
 def user_management(request):
 	user = request.session.get('user')
 	if user is None:
-		return redirect('/login')
+		return HttpResponseRedirect('login')
 
 	if user['role']['id'] not in (User.ADMINISTRATOR, ):
-		return redirect('/')
+		return HttpResponseRedirect('')
 
-	role_options = [{'name': '', 'display_name': u'全部'}, 
-					{'name': 'admin', 'display_name': u'管理员', 'id': User.ADMINISTRATOR}, 
-				 	{'name': 'doctor', 'display_name': u'医生', 'id': User.DOCTOR}, 
-				 	{'name': 'advisor', 'display_name': '咨询师', 'id': User.ADVISOR}, 
+	role_options = [{'name': '', 'display_name': u'全部'},
+					{'name': 'admin', 'display_name': u'管理员', 'id': User.ADMINISTRATOR},
+				 	{'name': 'doctor', 'display_name': u'医生', 'id': User.DOCTOR},
+				 	{'name': 'advisor', 'display_name': '咨询师', 'id': User.ADVISOR},
 				 	{'name': 'patient', 'display_name': '微服务用户', 'id': User.PATIENT}]
 	roles = role_options[1: ]
 
@@ -53,7 +54,7 @@ def user_management(request):
 	users = map(lambda u: view_model(u), users)
 	# For some special roles, they have their own behaviors
 	all_overseers = map(lambda u: view_model(u), filter(lambda u: u.role in (User.DOCTOR, User.ADVISOR), all_users))
-	
+
 	patient_users = filter(lambda u: u['role']['name'] == 'patient', users)
 	for p_user in patient_users:
 		patient = Patient.objects.get(user_id=p_user['id'])
@@ -70,14 +71,15 @@ def user_management(request):
 
 	all_patients = Patient.objects.filter(deleted=0)
 
-	return render_to_response('./user_management.html', locals())
+	return render_to_response('user_management.html', locals())
 
 def logout(request):
-	del request.session['user']
-	return redirect('/')
+	if 'user' in request.session:
+		del request.session['user']
+	return HttpResponseRedirect('.')
 
 def about(request):
-	return render_to_response('./about.html', locals())
+	return render_to_response('about.html', locals())
 
 def is_authenticated(request):
 	return request.session.get('user')
@@ -87,29 +89,29 @@ def get_login_user(request):
 
 def user_info(request):
 	if not is_authenticated(request):
-		return redirect('/')
+		return HttpResponseRedirect('..')
 	nav = 'info'
-	return redirect('/user/info_update')
+	return HttpResponseRedirect('info_update')
 
 def user_info_update(request):
 	if not is_authenticated(request):
-		return redirect('/')
+		return HttpResponseRedirect('..')
 	nav = 'info_update'
 	user = get_login_user(request)
 
-	return render_to_response('./user/info_update.html', locals())
+	return render_to_response('user/info_update.html', locals())
 
 def user_change_password(request):
 	if not is_authenticated(request):
-		return redirect('/')
+		return HttpResponseRedirect('..')
 	nav = 'change_password'
 	user = get_login_user(request)
-	return render_to_response('./user/change_password.html', locals())
+	return render_to_response('user/change_password.html', locals())
 
 def user_upload_avatar(request):
 	if not is_authenticated(request):
-		return redirect('/')
+		return HttpResponseRedirect('..')
 	nav = 'upload_avatar'
 	user = get_login_user(request)
-	return render_to_response('./user/upload_avatar.html', locals())
+	return render_to_response('user/upload_avatar.html', locals())
 
