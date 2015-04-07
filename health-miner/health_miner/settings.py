@@ -127,6 +127,7 @@ MIDDLEWARE_CLASSES = (
 )
 
 MHELP_RREFIX = "mhelp"
+HEALTNIC_RREFIX = "static/healtnic"
 
 ROOT_URLCONF = 'health_miner.urls'
 

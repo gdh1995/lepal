@@ -11,13 +11,16 @@ from django.http.response import HttpResponsePermanentRedirect
 # admin.autodiscover()
 
 MHELP = settings.MHELP_RREFIX
+HEALTNIC = settings.HEALTNIC_RREFIX
+
 def home(request):
     return HttpResponsePermanentRedirect("/" + MHELP + "/")
 
 urlpatterns = patterns('',
     url(r'^api/',               include('core.urls')),
-    url(r'^$',                  RedirectView.as_view(url = '/' + MHELP + '/about')),
-    url(r'^about$',             RedirectView.as_view(url = '/' + MHELP + '/about')),
+    url(r'^$',                  RedirectView.as_view(url = '/' + HEALTNIC + '/index.html')),
+    url(r'^index.html$',                  RedirectView.as_view(url = '/' + HEALTNIC + '/index.html')),
+    url(r'^about$',             RedirectView.as_view(url = '/' + HEALTNIC + '/index.html#contact')),
     url(r'^' + MHELP +  r'$',  home),
     url(r'^' + MHELP + r'/',   include('health_miner.mhelp_urls')),
 )
