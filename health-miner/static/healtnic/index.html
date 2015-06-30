@@ -13,7 +13,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 		<!-- Favicon -->
-    <link rel="shortcut icon" href="/static/img/icon.ico">
+		<link rel="shortcut icon" href="/static/img/icon.ico">
 
 		<!-- Web Fonts -->
 		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,400,700,300&amp;subset=latin,latin-ext' rel='stylesheet' type='text/css'>
@@ -226,18 +226,28 @@
 						<div class="filters text-center">
 							<ul class="nav nav-pills">
 								<li class="active"><a href="#" data-filter="*"><h4>全部</h4></a></li>
-								<li><a href="#" data-filter=".heart-rate"><h4>心率监测</h4></a></li>
-								<li><a href="#" data-filter=".sleep-analysis"><h4>睡眠分析</h4></a></li>
+								<li><a href="#" data-filter=".blood-pressure"><h4>连续血压测量</h4></a></li>
+								<li><a href="#" data-filter=".heart-rate"><h4>动态心率监测</h4></a></li>
+								<li><a href="#" data-filter=".sleep-analysis"><h4>专业睡眠分析</h4></a></li>
 							</ul>
 						</div>
 						<!-- isotope filters end -->
 
 						<!-- portfolio items start -->
 						<div class="isotope-container row grid-space-20">
+							<div class="col-sm-12 col-md-12 isotope-item blood-pressure">
+								<div class="resting">
+									<img src="images/bloodPressure.jpg" alt="">
+									<p class="lead text-left"><h2><span>连续血压测量</span></h2></p>
+									<p class="lead text-left"><h3><span>目前测量血压的方法主要有柯氏音法和示波法，这些方法基于袖带压迫式测量原理。虽然准确度较高，但佩戴不方便，无法实现血压的连续测量。</span></h3></p>
+									<p class="lead text-left"><h3><span>我们为客户提供基于脉搏波信号的非压迫式血压测量算法，该算法通过提取脉搏波信号的特征计算血压。当用户处于静息状态时，测量误差可以达到10mmHg以内。客户可以根据连续测量的血压值对高血压患者预警、调整用药以及实现更有效的慢病管理。</span></h3></p>
+								</div>
+							</div>
+
 							<div class="col-sm-12 col-md-12 isotope-item heart-rate">
 								<div class="running">
 									<img src="images/running.jpg" alt="">
-									<p class="lead text-left"><h2><span>精确的心率监测</span></h2></p>
+									<p class="lead text-left"><h2><span>动态心率监测</span></h2></p>
 									<p class="lead text-left"><h3><span>同大部分穿戴式心率监测设备一样，我们从光电容积脉搏波(PPG)信号中提取心率。但是这些穿戴式设备只能在用户处于静止或休息状态下监测心率(Resting Heart Rate)，而我们的算法可以在用户运动条件下持续监测心率(Active Heart Rate).</span></h3></p>
 								</div>
 							</div>
@@ -245,11 +255,11 @@
 							<div class="col-sm-12 col-md-12 isotope-item sleep-analysis">
 								<div class="sleeping">
 									<img src="images/sleeping.jpg" alt="">
-									<p class="lead text-left"><h2><span>专业的睡眠分析</span></h2></p>
+									<p class="lead text-left"><h2><span>专业睡眠分析</span></h2></p>
 									<p class="lead text-left"><h3><span>大部分具有睡眠分析功能的穿戴式设备利用加速度传感器来感知用户睡眠过程中的身体运动，这种睡眠分析方式有两大弊端：</span></h3></p>
 									<p class="lead text-left"><h3><span>（1）需要用户在入睡前和睡醒后设置睡眠监测模式</span></h3></p>
 									<p class="lead text-left"><h3><span>（2）睡眠分析的准确度不高，只能计算出深睡眠时间</span></h3></p>
-									<p class="lead text-left"><h3><span>我们为合作伙伴提供基于心率变异性和加速度数据联合分析睡眠周期的算法，我们的算法能自动判断用户入睡和起床时间，精确划分睡眠周期：醒觉、浅睡、深睡、快速眼动(REM). 合作伙伴可以根据睡眠分析结果开发更优质的应用程序，比如音乐助眠、自然闹钟唤醒、外语单词助记等。</span></h3></p>
+									<p class="lead text-left"><h3><span>我们为客户提供基于心率变异性和加速度数据联合分析睡眠周期的算法，我们的算法能自动判断用户入睡和起床时间，精确划分睡眠周期：醒觉、浅睡、深睡、快速眼动(REM). 客户可以根据睡眠分析结果开发更优质的应用程序，比如音乐助眠、自然闹钟唤醒、外语单词助记等。</span></h3></p>
 								</div>
 							</div>
 						</div>
