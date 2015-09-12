@@ -16,6 +16,9 @@ HEALTNIC = settings.HEALTNIC_RREFIX
 def home(request):
     return HttpResponsePermanentRedirect("/" + MHELP + "/")
 
+def redirect_tp_wx(request):
+    return HttpResponsePermanentRedirect("http://www.healthnic.cn:8000" + request.get_full_path())
+
 urlpatterns = patterns('',
     url(r'^api/',               include('core.urls')),
     url(r'^$',                  RedirectView.as_view(url = '/' + HEALTNIC + '/index.html')),
@@ -23,6 +26,7 @@ urlpatterns = patterns('',
     url(r'^about$',             RedirectView.as_view(url = '/' + HEALTNIC + '/index.html#contact')),
     url(r'^' + MHELP +  r'$',  home),
     url(r'^' + MHELP + r'/',   include('health_miner.mhelp_urls')),
+    url(r'^wx/',  redirect_tp_wx),
 )
 
 if settings.DEBUG:
