@@ -19,9 +19,9 @@ def home(request):
 import hashlib
 
 def validate(request):
-    signature =  request.GET.get("signature")
-    timestamp = request.GET.get("timestamp")
-    nonce = request.GET.get("nonce")
+    signature = request.GET.get("signature", "")
+    timestamp = request.GET.get("timestamp", "")
+    nonce = request.GET.get("nonce", "")
     token = 'healthnic'
     tmpArr = [token, timestamp, nonce]
     tmpArr.sort()
@@ -34,7 +34,7 @@ def on_weixin(request):
         return HttpResponse("NO POST")
     elif request.GET.get("signature"): #access token
         if validate(request):
-            return HttpResponse(request.GET.get('echostr'))
+            return HttpResponse(request.GET.get('echostr', ""))
         else:
             return HttpResponse('false')
     return HttpResponse("Unknown Method")
