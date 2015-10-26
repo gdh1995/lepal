@@ -27,6 +27,7 @@ urlpatterns = patterns('',
     url(r'^' + MHELP +  r'$',  home),
     url(r'^' + MHELP + r'/',   include('health_miner.mhelp_urls')),
     url(r'^wx/',  redirect_tp_wx),
+    url(r'^weixin',  redirect_tp_wx),
 )
 
 if settings.DEBUG:
